@@ -17,7 +17,8 @@ using namespace std;
 #define set_cursor(x,y) cout << "\033[" << x+1 << ";" << y << "H";
 #define resize_terminal() printf("\033[8;30;120t");
 #define clear_terminal() cout<<"\033[H\033[2J\033[3J";
-        
+#define clear_line() printf("%c[2K", 27);
+
 void list_files(int,int);
 vector<string> files;
 char* root;
@@ -157,13 +158,14 @@ void command_mode()
 {
 	while(1)
 	{
+		clear_terminal();
 		int input;
 		string temp="";
 		vector<string> cmds;
+		stack<char> stck;
 		while(1)
    		{
    			input=getch();
-   			//cout<<input<<endl;
    			if(input==10)
    			{
    				break;
@@ -174,25 +176,34 @@ void command_mode()
    				exit(0);
    			if(input==127)
    			{
-   				printf("%c[2K", 27);
+   				clear_line();
    				cout << "\r";
    				string sentence="";
-   				for(auto itr:cmds)
+   				char del_char=stck.top();
+   				stck.pop();
+   				stack<char> cpy=stck;
+   				while(!cpy.empty())
    				{
-   					string v=itr;
-   					sentence+=v+" ";
+   					char t=cpy.top();
+   					cpy.pop();
+   					sentence=t+sentence;
    				}
-   				sentence+=temp;
-   				sentence=sentence.substr(0,sentence.size()-1);
    				cout<<sentence;
    				if(temp!="")
    				{
    					temp=temp.substr(0,temp.size()-1);
    				}
+   				else if(temp=="" && stck.top()!=' ')
+   				{
+   					temp=*cmds.rbegin();
+   					cmds.pop_back();
+   				}
    				continue;
    			}
    			cout<<(char)input;
-   			if(input==' ')
+   			char ele=(char)input;
+   			stck.push(ele);
+   			if(ele==' ')
    			{
    				if(temp!="" && temp!=" ")
    				cmds.push_back(temp);
@@ -235,10 +246,11 @@ void command_mode()
     				stat(s,&st);
     				if(S_ISDIR(st.st_mode))
     				{
-    					char* dname=new char[cmds[2].size()+1];
-					strcpy(dname, cmds[2].c_str());	
+    					char* dname=new char[dest.size()+1];
+					strcpy(dname, dest.c_str());	
 		
         				int status= mkdir(dname ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        				//cout<<dname<<endl;
         				if(status==-1)
 					{
 	 					cout<<endl<<"Error in creating directory"<<endl;
@@ -246,10 +258,10 @@ void command_mode()
     					copy_directory(src,dest);
     				}
     				else
-   				copy_file(src,dest);
-   				cout<<endl;
-   				print_permissions(src);
-   				print_permissions(dest);
+   				{
+   					copy_file(src,dest);
+   				}
+   			
    			}
    		}
    	}
