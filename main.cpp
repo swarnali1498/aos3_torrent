@@ -205,7 +205,7 @@ bool search(string name,char* path)
 	}
 	return flag;
 }
-void command_mode(char* path)
+char* command_mode(char* path)
 {
 	//cout<<path<<endl;
 	while(1)
@@ -223,7 +223,7 @@ void command_mode(char* path)
    				break;
    			}
    			if(input==27)
-   				return;
+   				return path;
    			if(input=='q')
    				exit(0);
    			if(input==127)
@@ -294,6 +294,24 @@ void command_mode(char* path)
    				cout<<"True"<<endl;
    				else
    				cout<<"False"<<endl;
+   			}
+   			else if(op=="goto")
+   			{
+   				string finalpath=string(path)+"/"+cmds[1];
+   				
+   				char* fp=new char[finalpath.size()+1];
+   				strcpy(fp,finalpath.c_str());
+   				
+   				path=fp;
+   			}
+   			else if(op=="delete_file")
+   			{
+   				string finalpath=string(path)+"/"+cmds[1];
+   				
+   				char* fp=new char[finalpath.size()+1];
+   				strcpy(fp,finalpath.c_str());
+   				
+   				remove(fp);
    			}
    		}
    		else if(cmds.size()>=3)
@@ -378,8 +396,25 @@ void command_mode(char* path)
 			 		cout<<"Error in creating new file"<<endl;	       
 	    			}
    			}
+   			else if(op=="create_dir")
+   			{
+   				string name=cmds[1];
+   				string filepath=string(currdir)+"/"+cmds[2]+"/"+name;
+   				
+   				char* path=new char[filepath.size()+1];
+   				strcpy(path,filepath.c_str());
+   				
+   				//cout<<path<<endl;
+   				
+   				int status=mkdir(path ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); 	
+				if (status == -1)
+	   			{
+			 		cout<<"Error in creating new directory"<<endl;	       
+	    			}
+   			}
    		}
    	}
+   	return path;
 }
 
 void open_directory(char* path)
@@ -686,7 +721,8 @@ void move_cursor_normally(int index,int prev_pos)
    			//printf("lines %d\n", w.ws_row);
    			//set_cursor(w.ws_row-1,1);
    			clear_terminal();
-   			command_mode(root);
+   			root=command_mode(root);
+   			open_directory(root);
    			list_files(0,0);
    		}
    		//If q is pressed
