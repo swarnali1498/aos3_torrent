@@ -163,7 +163,7 @@ void command_mode()
 {
 	while(1)
 	{
-		clear_terminal();
+		//clear_terminal();
 		int input;
 		string temp="";
 		vector<string> cmds;
@@ -184,6 +184,8 @@ void command_mode()
    				clear_line();
    				cout << "\r";
    				string sentence="";
+   				if(stck.empty())
+   					continue;
    				char del_char=stck.top();
    				stck.pop();
    				stack<char> cpy=stck;
@@ -243,8 +245,29 @@ void command_mode()
    			string op=cmds[0];
    			for(int i=1;i<cmds.size()-1;i++)
    			{
-   				string dest=string(currdir)+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
-   				string src=string(currdir)+"/"+cmds[i];
+   				string src,dest;
+   				if(cmds[cmds.size()-1][0]=='~')
+   				{
+   					if(cmds[i][0]=='~')
+   						dest=string(currdir)+cmds[cmds.size()-1].substr(1)+"/"+cmds[i].substr(1);
+   					else
+   						dest=string(currdir)+cmds[cmds.size()-1].substr(1)+"/"+cmds[i];
+   				}
+   				else
+   				{
+   					if(cmds[i][0]=='~')
+   						dest=string(currdir)+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
+   					else
+   						dest=string(currdir)+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
+   				}
+   				if(cmds[i][0]=='~')
+   				{
+   					src=string(currdir)+"/"+cmds[i].substr(1);	
+   				}
+   				else
+   				{
+   					src=string(currdir)+"/"+cmds[i];
+   				}
    				if(op == "copy")
    				{
    					struct stat st;
