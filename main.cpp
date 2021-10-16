@@ -205,6 +205,53 @@ bool search(string name,char* path)
 	}
 	return flag;
 }
+
+void delete_file(char* file_path)
+{
+	remove(file_path);
+}
+
+void delete_dir(char* dir_path)
+{
+	DIR *d;
+	struct dirent *dir;
+	d = opendir(dir_path);
+	if(d==NULL) 
+	{
+	    cout<<"No such directory found"<<endl;
+	}
+	else
+	{
+		while (dir = readdir(d)) 
+	        {	 
+	    		string filename=dir->d_name;
+	    	       // cout<<filename<<endl;
+		        //if(filename!="." && filename!="..")
+		        {	
+		      	  	string newpath=string(dir_path)+"/"+filename;	
+		  	  	
+		  	  	char* np=new char[newpath.size()+1];
+				strcpy(np, newpath.c_str());
+				
+				struct stat st;
+		  	  	if (stat(np,&st) == -1) 
+				{
+			        	cout<<"Cannot read file/folder"<<endl;
+				}
+		  		else if(S_ISDIR(st.st_mode))
+				{
+				    	delete_dir(np);
+				}
+				else
+				{
+					delete_file(np);
+			        }
+		        }
+	        }
+	        closedir(d);
+	}
+}
+
 char* command_mode(char* path)
 {
 	//cout<<path<<endl;
@@ -311,7 +358,16 @@ char* command_mode(char* path)
    				char* fp=new char[finalpath.size()+1];
    				strcpy(fp,finalpath.c_str());
    				
-   				remove(fp);
+   				delete_file(fp);
+   			}
+   			else if(op=="delete_dir")
+   			{
+   				string finalpath=string(path)+"/"+cmds[1];
+   				
+   				char* fp=new char[finalpath.size()+1];
+   				strcpy(fp,finalpath.c_str());
+   				
+   				delete_dir(fp);
    			}
    		}
    		else if(cmds.size()>=3)
