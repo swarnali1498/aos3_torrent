@@ -46,7 +46,7 @@ void copy_file(string src, string dest)
 {
     int s,d;
     char ch;
-    cout<<src<<" "<<dest<<endl;
+   // cout<<src<<" "<<dest<<endl;
     if((s=open(src.c_str(),O_RDONLY))==-1)
     {
         printf("\nCannot open source file\n");
@@ -82,7 +82,15 @@ void copy_file(string src, string dest)
 }
 
 void copy_directory(string src,string dest)
-{	  	  	
+{	  	
+	char* dname=new char[dest.size()+1];
+	strcpy(dname, dest.c_str());	
+	int status= mkdir(dname ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        //cout<<"dname "<<dname<<endl;
+        if(status==-1)
+	{
+	 	cout<<endl<<"Error in creating directory"<<endl;
+	}  	
 	char* from=new char[src.size()+1];
 	strcpy(from, src.c_str());
 
@@ -155,7 +163,7 @@ void command_mode()
 {
 	while(1)
 	{
-		//clear_terminal();
+		clear_terminal();
 		int input;
 		string temp="";
 		vector<string> cmds;
@@ -246,14 +254,6 @@ void command_mode()
     					stat(s,&st);
     					if(S_ISDIR(st.st_mode))
     					{
-    						char* dname=new char[dest.size()+1];
-						strcpy(dname, dest.c_str());	
-						int status= mkdir(dname ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        					//cout<<dname<<endl;
-        					if(status==-1)
-						{
-	 						cout<<endl<<"Error in creating directory"<<endl;
-						}
     						copy_directory(src,dest);
     					}
     					else
@@ -261,9 +261,6 @@ void command_mode()
    						copy_file(src,dest);
    					}
    				}
-   				print_permissions(src);
-   				print_permissions(dest);
-   			
    			}
    		}
    	}
