@@ -46,14 +46,15 @@ void copy_file(string src, string dest)
 {
     int s,d;
     char ch;
+    cout<<src<<" "<<dest<<endl;
     if((s=open(src.c_str(),O_RDONLY))==-1)
     {
         printf("\nCannot open source file\n");
         return;
     }
-    if((d=open(dest.c_str(),O_CREAT|O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR))==-1)
+    if((d=open(dest.c_str(),O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR))==-1)
     {
-        printf("\nDestination already exists\n");
+        printf("\nCannot open destination folder\n");
         return;
     }
     while(read(s,&ch,1)>0)
@@ -154,7 +155,7 @@ void command_mode()
 {
 	while(1)
 	{
-		clear_terminal();
+		//clear_terminal();
 		int input;
 		string temp="";
 		vector<string> cmds;
@@ -229,35 +230,39 @@ void command_mode()
    		{
    		
    		}
-   		else if(cmds.size()==3)
+   		else if(cmds.size()>=3)
    		{
-   			string op=cmds[0],src,dest;
-   			src=string(currdir)+"/"+cmds[1];
-   			dest=string(currdir)+"/"+cmds[2];
-   			if(op == "copy")
+   			string op=cmds[0];
+   			for(int i=1;i<cmds.size()-1;i++)
    			{
-   				struct stat st;
-    				char* s=new char[src.length() + 1];
-    				cout<<s<<endl;
-    				strcpy(s, src.c_str());
-    				stat(s,&st);
-    				if(S_ISDIR(st.st_mode))
-    				{
-    					char* dname=new char[dest.size()+1];
-					strcpy(dname, dest.c_str());	
-		
-        				int status= mkdir(dname ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        				//cout<<dname<<endl;
-        				if(status==-1)
-					{
-	 					cout<<endl<<"Error in creating directory"<<endl;
-					}
-    					copy_directory(src,dest);
-    				}
-    				else
+   				string dest=string(currdir)+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
+   				string src=string(currdir)+"/"+cmds[i];
+   				if(op == "copy")
    				{
-   					copy_file(src,dest);
+   					struct stat st;
+    					char* s=new char[src.length() + 1];
+    					cout<<s<<endl;
+    					strcpy(s, src.c_str());
+    					stat(s,&st);
+    					if(S_ISDIR(st.st_mode))
+    					{
+    						char* dname=new char[dest.size()+1];
+						strcpy(dname, dest.c_str());	
+						int status= mkdir(dname ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        					//cout<<dname<<endl;
+        					if(status==-1)
+						{
+	 						cout<<endl<<"Error in creating directory"<<endl;
+						}
+    						copy_directory(src,dest);
+    					}
+    					else
+   					{
+   						copy_file(src,dest);
+   					}
    				}
+   				print_permissions(src);
+   				print_permissions(dest);
    			
    			}
    		}
