@@ -159,8 +159,9 @@ void print_permissions(string s)
 	cout<<endl;
 }
 
-void command_mode()
+void command_mode(char* path)
 {
+	cout<<path<<endl;
 	while(1)
 	{
 		//clear_terminal();
@@ -249,30 +250,30 @@ void command_mode()
    				if(cmds[cmds.size()-1][0]=='~')
    				{
    					if(cmds[i][0]=='~')
-   						dest=string(currdir)+cmds[cmds.size()-1].substr(1)+"/"+cmds[i].substr(1);
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i].substr(1);
    					else
-   						dest=string(currdir)+cmds[cmds.size()-1].substr(1)+"/"+cmds[i];
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i];
    				}
    				else
    				{
    					if(cmds[i][0]=='~')
-   						dest=string(currdir)+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
    					else
-   						dest=string(currdir)+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
+   						dest=string(currdir)+"/"+path+"/"+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
    				}
    				if(cmds[i][0]=='~')
    				{
-   					src=string(currdir)+"/"+cmds[i].substr(1);	
+   					src=string(currdir)+"/"+path+"/"+"/"+cmds[i].substr(1);	
    				}
    				else
    				{
-   					src=string(currdir)+"/"+cmds[i];
+   					src=string(currdir)+"/"+path+"/"+"/"+cmds[i];
    				}
    				if(op == "copy")
    				{
    					struct stat st;
     					char* s=new char[src.length() + 1];
-    					cout<<s<<endl;
+    					//cout<<s<<endl;
     					strcpy(s, src.c_str());
     					stat(s,&st);
     					if(S_ISDIR(st.st_mode))
@@ -593,7 +594,7 @@ void move_cursor_normally(int index,int prev_pos)
    			//printf("lines %d\n", w.ws_row);
    			//set_cursor(w.ws_row-1,1);
    			clear_terminal();
-   			command_mode();
+   			command_mode(root);
    			list_files(0,0);
    		}
    		//If q is pressed
