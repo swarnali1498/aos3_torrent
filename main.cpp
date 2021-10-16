@@ -136,6 +136,7 @@ void copy_directory(string src,string dest)
 			        }
 		        }
 	        }
+	        closedir(d);
 	}
 }
 
@@ -165,6 +166,7 @@ bool search(string name,char* path)
 	struct dirent *dir;
 	//cout<<path<<endl;
 	d = opendir(path);
+	bool flag=false;
 	if(d==NULL) 
 	{
 	    cout<<"No such directory found"<<endl;
@@ -174,9 +176,12 @@ bool search(string name,char* path)
 		while (dir = readdir(d)) 
 	        {	 
 	    		string filename=dir->d_name;
-	    	        cout<<filename<<endl;
+	    	       // cout<<filename<<endl;
 		        if(filename==name)
-		        return true;
+		        {
+		        	flag=true;
+		        	break;
+		        }
 		        if(filename!="." && filename!="..")
 		        {	
 		        	string nextpath=string(path)+"/"+filename;	
@@ -187,16 +192,17 @@ bool search(string name,char* path)
 				struct stat st;
 		  	  	if (stat(np,&st) == -1) 
 				{
-			        	cout<<"Cannot read file/folder"<<endl;
+			        	//cout<<"Cannot read file/folder "<<np<<endl;
 				}
 		  		else if(S_ISDIR(st.st_mode))
 				{
-				    	return search(name,np);
+				    	flag = flag || search(name,np);
 				}
 		        }
 	        }
+	        closedir(d);
 	}
-	return false;
+	return flag;
 }
 void command_mode(char* path)
 {
@@ -281,6 +287,7 @@ void command_mode(char* path)
    			string op=cmds[0];
    			if(op=="search")
    			{
+   				//cout<<"path= "<<path<<endl;
    				bool b=search(cmds[1],path);
    				if(b)
    				cout<<"True"<<endl;
@@ -291,33 +298,33 @@ void command_mode(char* path)
    		else if(cmds.size()>=3)
    		{
    			string op=cmds[0];
-   			for(int i=1;i<cmds.size()-1;i++)
-   			{
-   				string src,dest;
-   				if(cmds[cmds.size()-1][0]=='~')
+   			if(op == "copy")
+   			{	
+   				for(int i=1;i<cmds.size()-1;i++)
    				{
-   					if(cmds[i][0]=='~')
+   					string src,dest;
+   					if(cmds[cmds.size()-1][0]=='~')
+   					{
+   						if(cmds[i][0]=='~')
    						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i].substr(1);
-   					else
+   						else
    						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i];
-   				}
-   				else
-   				{
-   					if(cmds[i][0]=='~')
-   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
+   					}
    					else
+   					{
+   						if(cmds[i][0]=='~')
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
+   						else
    						dest=string(currdir)+"/"+path+"/"+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
-   				}
-   				if(cmds[i][0]=='~')
-   				{
-   					src=string(currdir)+"/"+path+"/"+"/"+cmds[i].substr(1);	
-   				}
-   				else
-   				{
-   					src=string(currdir)+"/"+path+"/"+"/"+cmds[i];
-   				}
-   				if(op == "copy")
-   				{
+   					}
+   					if(cmds[i][0]=='~')
+   					{
+   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i].substr(1);	
+   					}
+   					else
+   					{
+   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i];
+   					}
    					struct stat st;
     					char* s=new char[src.length() + 1];
     					//cout<<s<<endl;
@@ -331,6 +338,25 @@ void command_mode(char* path)
    					{
    						copy_file(src,dest);
    					}
+   				}
+   			}
+   			else if(op=="rename")
+   			{
+   				if(cmds.size()>3)
+   				cout<<"Invalid input"<<endl;
+   				else
+   				{
+   					string old_name=string(currdir)+"/"+path+"/"+cmds[1];
+   					string new_name=string(currdir)+"/"+path+"/"+cmds[2];
+   					
+   					char* on=new char[old_name.size()+1];
+   					strcpy(on,old_name.c_str());
+   					char* nn=new char[new_name.size()+1];
+   					strcpy(nn,new_name.c_str());
+					
+					int r=rename(on,nn);
+					if(!r)
+					cout<<"Renaming is unsuccesful"<<endl;   					
    				}
    			}
    		}
