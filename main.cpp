@@ -10,6 +10,7 @@
 #include<grp.h>
 #include<fcntl.h>
 #include<sys/types.h>
+#include<cstdio>
 #include<set>
 using namespace std;
 
@@ -355,9 +356,27 @@ void command_mode(char* path)
    					strcpy(nn,new_name.c_str());
 					
 					int r=rename(on,nn);
-					if(!r)
-					cout<<"Renaming is unsuccesful"<<endl;   					
+					if(r)
+					cout<<"Renaming is unsuccesful"<<endl;   
+					else
+					cout<<"Successful renaming"<<endl;					
    				}
+   			}
+   			else if(op=="create_file")
+   			{
+   				string name=cmds[1];
+   				string filepath=string(currdir)+"/"+cmds[2]+"/"+name;
+   				
+   				char* path=new char[filepath.size()+1];
+   				strcpy(path,filepath.c_str());
+   				
+   				//cout<<path<<endl;
+   				
+   				int status=open(path,O_RDONLY | O_CREAT,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); 	
+				if (status == -1)
+	   			{
+			 		cout<<"Error in creating new file"<<endl;	       
+	    			}
    			}
    		}
    	}
