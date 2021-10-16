@@ -159,9 +159,48 @@ void print_permissions(string s)
 	cout<<endl;
 }
 
+bool search(string name,char* path)
+{
+	DIR *d;
+	struct dirent *dir;
+	//cout<<path<<endl;
+	d = opendir(path);
+	if(d==NULL) 
+	{
+	    cout<<"No such directory found"<<endl;
+	}
+	else
+	{
+		while (dir = readdir(d)) 
+	        {	 
+	    		string filename=dir->d_name;
+	    	        cout<<filename<<endl;
+		        if(filename==name)
+		        return true;
+		        if(filename!="." && filename!="..")
+		        {	
+		        	string nextpath=string(path)+"/"+filename;	
+		  	  	
+		  	  	char* np=new char[nextpath.size()+1];
+				strcpy(np, nextpath.c_str());
+				
+				struct stat st;
+		  	  	if (stat(np,&st) == -1) 
+				{
+			        	cout<<"Cannot read file/folder"<<endl;
+				}
+		  		else if(S_ISDIR(st.st_mode))
+				{
+				    	return search(name,np);
+				}
+		        }
+	        }
+	}
+	return false;
+}
 void command_mode(char* path)
 {
-	cout<<path<<endl;
+	//cout<<path<<endl;
 	while(1)
 	{
 		//clear_terminal();
@@ -239,7 +278,15 @@ void command_mode(char* path)
    		}
    		else if(cmds.size()==2)
    		{
-   		
+   			string op=cmds[0];
+   			if(op=="search")
+   			{
+   				bool b=search(cmds[1],path);
+   				if(b)
+   				cout<<"True"<<endl;
+   				else
+   				cout<<"False"<<endl;
+   			}
    		}
    		else if(cmds.size()>=3)
    		{
