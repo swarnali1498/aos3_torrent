@@ -78,7 +78,6 @@ void copy_file(string src, string dest)
     int status2=chmod(des,srcstat.st_mode);
 	if(status2!=0)
 		cout<<endl<<"Error in setting permission of file using chmod"<<endl;
-
 }
 
 void copy_directory(string src,string dest)
@@ -90,47 +89,44 @@ void copy_directory(string src,string dest)
 	strcpy(to, dest.c_str());	
 
 	DIR *d;
-	string path_from,path_to;
 	struct dirent *dir;
 	d = opendir(from);
-	if(d) 
+	if(d==NULL) 
 	{
-	    dir = readdir(d);
-	    while (dir) 
-	    {	 
-	    	      string filename=dir->d_name;
-	    	      //cout<<filename<<endl;
-		      if(filename!="." && filename!="..")
-		      {	
-		      		path_from=src+"/"+filename;	
-		  	  	path_to=dest+"/"+filename;	
-		  	  	//cout<<path_from<<" "<<path_to<<endl;
-		  	  	
-		  	  	from=new char[path_from.size()+1];
-				strcpy(from, path_to.c_str());
-				
-		  	  	to=new char[path_to.size()+1];
-				strcpy(to, path_to.c_str());
-				
-				struct stat st;
-		  	  	if (stat(from,&st) == -1) 
-				{
-			        //	cout<<"Error"<<endl;
-				}
-		  		else if(S_ISDIR(st.st_mode))
-				{
-				    	copy_directory(from,to);
-				}
-				else
-				{
-					copy_file(from,to);
-			        }
-		     }
-	    }
+	    cout<<"No such directory found"<<endl;
 	}
 	else
 	{
-		cout<<endl<<"No such directory found"<<endl;
+		while (dir = readdir(d)) 
+	        {	 
+	    		string filename=dir->d_name;
+	    	       // cout<<filename<<endl;
+		        if(filename!="." && filename!="..")
+		        {	
+		      	  	string path_from=src+"/"+filename;	
+		  	  	string path_to=dest+"/"+filename;	
+		  	  	
+		  	  	char* f=new char[path_from.size()+1];
+				strcpy(f, path_from.c_str());
+				
+		  	  	char* t=new char[path_to.size()+1];
+				strcpy(t, path_to.c_str());
+				
+				struct stat st;
+		  	  	if (stat(f,&st) == -1) 
+				{
+			        	cout<<"Cannot read source file/folder"<<endl;
+				}
+		  		else if(S_ISDIR(st.st_mode))
+				{
+				    	copy_directory(string(f),string(t));
+				}
+				else
+				{
+					copy_file(string(f),string(t));
+			        }
+		        }
+	        }
 	}
 }
 
@@ -242,6 +238,7 @@ void command_mode()
    			{
    				struct stat st;
     				char* s=new char[src.length() + 1];
+    				cout<<s<<endl;
     				strcpy(s, src.c_str());
     				stat(s,&st);
     				if(S_ISDIR(st.st_mode))
