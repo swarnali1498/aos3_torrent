@@ -213,6 +213,7 @@ void delete_file(char* file_path)
 
 void delete_dir(char* dir_path)
 {
+	//cout<<dir_path<<endl;
 	DIR *d;
 	struct dirent *dir;
 	d = opendir(dir_path);
@@ -225,8 +226,8 @@ void delete_dir(char* dir_path)
 		while (dir = readdir(d)) 
 	        {	 
 	    		string filename=dir->d_name;
-	    	       // cout<<filename<<endl;
-		        //if(filename!="." && filename!="..")
+	    	      //  cout<<filename<<endl;
+		        if(filename!="." && filename!="..")
 		        {	
 		      	  	string newpath=string(dir_path)+"/"+filename;	
 		  	  	
@@ -247,8 +248,18 @@ void delete_dir(char* dir_path)
 					delete_file(np);
 			        }
 		        }
+		        else
+		        {
+		        	string newpath=string(dir_path)+"/"+filename;	
+		  	  	
+		        	char* np=new char[newpath.size()+1];
+				strcpy(np, newpath.c_str());
+				
+				remove(np);
+		        }
 	        }
 	        closedir(d);
+	        remove(dir_path);
 	}
 }
 
@@ -412,6 +423,50 @@ char* command_mode(char* path)
     					else
    					{
    						copy_file(src,dest);
+   					}
+   				}
+   			}
+   			else if(op=="move")
+   			{
+   				for(int i=1;i<cmds.size()-1;i++)
+   				{
+   					string src,dest;
+   					if(cmds[cmds.size()-1][0]=='~')
+   					{
+   						if(cmds[i][0]=='~')
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i].substr(1);
+   						else
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i];
+   					}
+   					else
+   					{
+   						if(cmds[i][0]=='~')
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
+   						else
+   						dest=string(currdir)+"/"+path+"/"+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
+   					}
+   					if(cmds[i][0]=='~')
+   					{
+   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i].substr(1);	
+   					}
+   					else
+   					{
+   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i];
+   					}
+   					struct stat st;
+    					char* s=new char[src.length() + 1];
+    					//cout<<s<<endl;
+    					strcpy(s, src.c_str());
+    					stat(s,&st);
+    					if(S_ISDIR(st.st_mode))
+    					{
+    						copy_directory(src,dest);
+    						delete_dir(s);
+    					}
+    					else
+   					{
+   						copy_file(src,dest);
+   						delete_file(s);
    					}
    				}
    			}
