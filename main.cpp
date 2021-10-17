@@ -43,11 +43,25 @@ int getch(void)
     return ch;
 }
 
+bool check_if_path_exists(string path)
+{
+	char* p=new char[path.size()+1];
+	strcpy(p,path.c_str());
+	
+	struct stat st;
+	if (stat(p,&st) == -1) 
+	{
+		cout<<p<<endl;
+		return false;
+	}
+	return true;
+}
+
 void copy_file(string src, string dest)
 {
     int s,d;
     char ch;
-   // cout<<src<<" "<<dest<<endl;
+    cout<<src<<" "<<dest<<endl;
     if((s=open(src.c_str(),O_RDONLY))==-1)
     {
         printf("\nCannot open source file\n");
@@ -165,7 +179,7 @@ bool search(string name,char* path)
 {
 	DIR *d;
 	struct dirent *dir;
-	//cout<<path<<endl;
+	//cout<<endl<<path<<endl;
 	d = opendir(path);
 	bool flag=false;
 	if(d==NULL) 
@@ -329,10 +343,25 @@ char* command_mode(char* path)
    			cmds.push_back(temp);
    		}
    		
-   		/*cout<<cmds.size()<<endl;
-   		for(auto itr:cmds)
-   		cout<<itr<<" ";
-   		cout<<endl;*/
+   		register uid_t uid;
+        	register gid_t gid;
+        	register struct group * g;
+        	register struct passwd * pw;       
+        	uid = geteuid();
+        	pw = getpwuid(uid);
+        	string home;
+        	if (pw) 
+        	{
+               	home="/home/" + string(pw -> pw_name) +"/";
+               }
+   		//cout<<cmds.size()<<endl;
+   		for(int i=0;i<cmds.size();i++)
+   		{
+   			if (cmds[i][0] == '~')
+        			cmds[i] = home + cmds[i].substr(2);
+   			/*else if (cmds[i][0] == '/') 
+        			cmds[i] = cmds[i].substr(1);*/
+   		}
    		
    		if(cmds.size()==1)
    		{
@@ -346,16 +375,26 @@ char* command_mode(char* path)
    			string op=cmds[0];
    			if(op=="search")
    			{
-   				//cout<<"path= "<<path<<endl;
-   				bool b=search(cmds[1],path);
-   				if(b)
+   				cout<<endl<<"path= "<<cmds[1]<<endl;
+   				if(check_if_path_exists(cmds[1]))
    				cout<<"True"<<endl;
    				else
-   				cout<<"False"<<endl;
+   				{
+   					bool b=search(cmds[1],path);
+   					if(b)
+   					cout<<"True"<<endl;
+   					else
+   					cout<<"False"<<endl;
+   				}
    			}
    			else if(op=="goto")
    			{
-   				string finalpath=string(path)+"/"+cmds[1];
+   				string finalpath;
+   				
+   				if(check_if_path_exists(cmds[1]))
+   				finalpath=cmds[1];
+   				else
+   				finalpath=string(path)+"/"+cmds[1];
    				
    				char* fp=new char[finalpath.size()+1];
    				strcpy(fp,finalpath.c_str());
@@ -364,7 +403,12 @@ char* command_mode(char* path)
    			}
    			else if(op=="delete_file")
    			{
-   				string finalpath=string(path)+"/"+cmds[1];
+   				string finalpath;
+   				
+   				if(check_if_path_exists(cmds[1]))
+   				finalpath=cmds[1];
+   				else
+   				finalpath=string(path)+"/"+cmds[1];
    				
    				char* fp=new char[finalpath.size()+1];
    				strcpy(fp,finalpath.c_str());
@@ -373,7 +417,12 @@ char* command_mode(char* path)
    			}
    			else if(op=="delete_dir")
    			{
-   				string finalpath=string(path)+"/"+cmds[1];
+   				string finalpath;
+   				
+   				if(check_if_path_exists(cmds[1]))
+   				finalpath=cmds[1];
+   				else
+   				finalpath=string(path)+"/"+cmds[1];
    				
    				char* fp=new char[finalpath.size()+1];
    				strcpy(fp,finalpath.c_str());
@@ -389,27 +438,31 @@ char* command_mode(char* path)
    				for(int i=1;i<cmds.size()-1;i++)
    				{
    					string src,dest;
-   					if(cmds[cmds.size()-1][0]=='~')
+   					cout<<endl<<string(currdir)<<" "<<path<<endl;
+   					
+   					if(check_if_path_exists(cmds[i]))
    					{
-   						if(cmds[i][0]=='~')
-   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i].substr(1);
-   						else
-   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i];
+   						src=cmds[i];
    					}
    					else
    					{
-   						if(cmds[i][0]=='~')
-   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
-   						else
-   						dest=string(currdir)+"/"+path+"/"+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
+   						src=string(currdir)+"/"+path+"/"+cmds[i];	
    					}
-   					if(cmds[i][0]=='~')
+   					
+   					if(check_if_path_exists(cmds[cmds.size()-1]))
    					{
-   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i].substr(1);	
+   						dest=cmds[i];
    					}
    					else
    					{
-   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i];
+   						string d="";
+   						for(int j=cmds[i].size()-1;j>=0;j--)
+   						{
+   							if(cmds[i][j]=='/')
+   								break;
+   							d=cmds[i][j]+d;
+   						}
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+d;
    					}
    					struct stat st;
     					char* s=new char[src.length() + 1];
@@ -623,7 +676,6 @@ void printfiles(int index)
         printf((fileInfo.st_mode & S_IWOTH) ? "w" : "-");
         printf((fileInfo.st_mode & S_IXOTH) ? "x" : "-");
 
-                
         uid = geteuid();
         pw = getpwuid(uid);
         if (pw) 
