@@ -352,7 +352,8 @@ char* command_mode(char* path)
         	string home;
         	if (pw) 
         	{
-               	home="/home/" + string(pw -> pw_name) +"/";
+               	home=string(pw -> pw_dir) +"/";
+               	cout<<home<<endl;
                }
    		//cout<<cmds.size()<<endl;
    		for(int i=0;i<cmds.size();i++)
@@ -532,15 +533,16 @@ char* command_mode(char* path)
    					string old_name,new_name;
    					
    					if(check_if_path_exists(cmds[1]))
-   					old_name=cmds[1];
+   					{
+   						old_name=cmds[1];
+   						new_name=cmds[2];
+   					}
    					else
-   					old_name=string(currdir)+"/"+path+"/"+cmds[1];
-   					
-   					if(check_if_path_exists(cmds[2]))
-   					new_name=cmds[2];
-   					else
-   					new_name=string(currdir)+"/"+path+"/"+cmds[2];
-   					
+   					{
+   						old_name=string(currdir)+"/"+path+"/"+cmds[1];
+   						new_name=string(currdir)+"/"+path+"/"+cmds[2];
+   					}
+   						
    					char* on=new char[old_name.size()+1];
    					strcpy(on,old_name.c_str());
    					char* nn=new char[new_name.size()+1];
