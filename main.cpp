@@ -69,7 +69,7 @@ void copy_file(string src, string dest)
     }
     if((d=open(dest.c_str(),O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR))==-1)
     {
-        printf("\nCannot open destination folder\n");
+        printf("\n here Cannot open destination folder\n");
         return;
     }
     while(read(s,&ch,1)>0)
@@ -438,7 +438,7 @@ char* command_mode(char* path)
    				for(int i=1;i<cmds.size()-1;i++)
    				{
    					string src,dest;
-   					cout<<endl<<string(currdir)<<" "<<path<<endl;
+   					//cout<<endl<<string(currdir)<<" "<<path<<endl;
    					
    					if(check_if_path_exists(cmds[i]))
    					{
@@ -448,20 +448,19 @@ char* command_mode(char* path)
    					{
    						src=string(currdir)+"/"+path+"/"+cmds[i];	
    					}
-   					
+   					string d="";
+   					for(int j=cmds[i].size()-1;j>=0;j--)
+   					{
+   						if(cmds[i][j]=='/')
+   							break;
+   						d=cmds[i][j]+d;
+   					}
    					if(check_if_path_exists(cmds[cmds.size()-1]))
    					{
-   						dest=cmds[i];
+   						dest=cmds[cmds.size()-1]+"/"+d;
    					}
    					else
-   					{
-   						string d="";
-   						for(int j=cmds[i].size()-1;j>=0;j--)
-   						{
-   							if(cmds[i][j]=='/')
-   								break;
-   							d=cmds[i][j]+d;
-   						}
+   					{	
    						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+d;
    					}
    					struct stat st;
@@ -484,27 +483,28 @@ char* command_mode(char* path)
    				for(int i=1;i<cmds.size()-1;i++)
    				{
    					string src,dest;
-   					if(cmds[cmds.size()-1][0]=='~')
+   					if(check_if_path_exists(cmds[i]))
    					{
-   						if(cmds[i][0]=='~')
-   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i].substr(1);
-   						else
-   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1].substr(1)+"/"+cmds[i];
+   						src=cmds[i];
    					}
    					else
    					{
-   						if(cmds[i][0]=='~')
-   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+cmds[i].substr(1);
-   						else
-   						dest=string(currdir)+"/"+path+"/"+"/"+cmds[cmds.size()-1]+"/"+cmds[i];
+   						src=string(currdir)+"/"+path+"/"+cmds[i];	
    					}
-   					if(cmds[i][0]=='~')
+   					string d="";
+   					for(int j=cmds[i].size()-1;j>=0;j--)
    					{
-   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i].substr(1);	
+   						if(cmds[i][j]=='/')
+   							break;
+   						d=cmds[i][j]+d;
+   					}
+   					if(check_if_path_exists(cmds[cmds.size()-1]))
+   					{
+   						dest=cmds[cmds.size()-1]+"/"+d;
    					}
    					else
-   					{
-   						src=string(currdir)+"/"+path+"/"+"/"+cmds[i];
+   					{	
+   						dest=string(currdir)+"/"+path+"/"+cmds[cmds.size()-1]+"/"+d;
    					}
    					struct stat st;
     					char* s=new char[src.length() + 1];
@@ -529,8 +529,17 @@ char* command_mode(char* path)
    				cout<<"Invalid input"<<endl;
    				else
    				{
-   					string old_name=string(currdir)+"/"+path+"/"+cmds[1];
-   					string new_name=string(currdir)+"/"+path+"/"+cmds[2];
+   					string old_name,new_name;
+   					
+   					if(check_if_path_exists(cmds[1]))
+   					old_name=cmds[1];
+   					else
+   					old_name=string(currdir)+"/"+path+"/"+cmds[1];
+   					
+   					if(check_if_path_exists(cmds[2]))
+   					new_name=cmds[2];
+   					else
+   					new_name=string(currdir)+"/"+path+"/"+cmds[2];
    					
    					char* on=new char[old_name.size()+1];
    					strcpy(on,old_name.c_str());
@@ -546,15 +555,18 @@ char* command_mode(char* path)
    			}
    			else if(op=="create_file")
    			{
-   				string name=cmds[1];
-   				string filepath=string(currdir)+"/"+cmds[2]+"/"+name;
+   				string name=cmds[1],filepath;
+   				if(check_if_path_exists(cmds[2]))
+   				filepath=cmds[2]+"/"+name;
+   				else
+   				filepath=string(currdir)+"/"+string(path)+"/"+cmds[2]+"/"+name;
    				
-   				char* path=new char[filepath.size()+1];
-   				strcpy(path,filepath.c_str());
+   				char* fpath=new char[filepath.size()+1];
+   				strcpy(fpath,filepath.c_str());
    				
    				//cout<<path<<endl;
    				
-   				int status=open(path,O_RDONLY | O_CREAT,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); 	
+   				int status=open(fpath,O_RDONLY | O_CREAT,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); 	
 				if (status == -1)
 	   			{
 			 		cout<<"Error in creating new file"<<endl;	       
@@ -562,15 +574,18 @@ char* command_mode(char* path)
    			}
    			else if(op=="create_dir")
    			{
-   				string name=cmds[1];
-   				string filepath=string(currdir)+"/"+cmds[2]+"/"+name;
+   				string name=cmds[1],filepath;
+   				if(check_if_path_exists(cmds[2]))
+   				filepath=cmds[2]+"/"+name;
+   				else
+   				filepath=string(currdir)+"/"+path+"/"+cmds[2]+"/"+name;
    				
-   				char* path=new char[filepath.size()+1];
-   				strcpy(path,filepath.c_str());
+   				char* fpath=new char[filepath.size()+1];
+   				strcpy(fpath,filepath.c_str());
    				
    				//cout<<path<<endl;
    				
-   				int status=mkdir(path ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); 	
+   				int status=mkdir(fpath ,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); 	
 				if (status == -1)
 	   			{
 			 		cout<<"Error in creating new directory"<<endl;	       
@@ -912,10 +927,7 @@ void list_files(int index,int prev_pos)
 	{	
 		printfiles(i);
 	}
-	//if(cmd_mode)
-       //	commandMode(cursor);
-    	//else 
-       move_cursor_normally(index,prev_pos);	
+	move_cursor_normally(index,prev_pos);	
 }
 
 
