@@ -45,23 +45,32 @@ int getch(void)
 
 bool check_if_path_exists(string path)
 {
-	char* p=new char[path.size()+1];
-	strcpy(p,path.c_str());
+       int i;
+       register uid_t uid;
+       register gid_t gid;
+       register struct group * g;
+       register struct passwd * pw;       
+       uid = geteuid();
+       pw = getpwuid(uid);
+       string home;
+       if (pw) 
+       {
+               home=string(pw -> pw_dir) +"/";
+       }
+       for(i=0;i<min(path.size(),home.size());i++)
+       {
+       	if(home[i]!=path[i])
+       	return false;
+       }
+       return true;
 	
-	struct stat st;
-	if (stat(p,&st) == -1) 
-	{
-		cout<<p<<endl;
-		return false;
-	}
-	return true;
 }
 
 void copy_file(string src, string dest)
 {
     int s,d;
     char ch;
-    cout<<src<<" "<<dest<<endl;
+  //  cout<<src<<" "<<dest<<endl;
     if((s=open(src.c_str(),O_RDONLY))==-1)
     {
         printf("\nCannot open source file\n");
@@ -155,7 +164,7 @@ void copy_directory(string src,string dest)
 	}
 }
 
-void print_permissions(string s)
+/*void print_permissions(string s)
 {
 	struct stat fileInfo;
 	char* temp=new char[s.length() + 1];
@@ -173,7 +182,7 @@ void print_permissions(string s)
 	printf((fileInfo.st_mode & S_IWOTH) ? "w" : "-");
 	printf((fileInfo.st_mode & S_IXOTH) ? "x" : "-");
 	cout<<endl;
-}
+}*/
 
 bool search(string name,char* path)
 {
@@ -279,10 +288,10 @@ void delete_dir(char* dir_path)
 
 char* command_mode(char* path)
 {
-	//cout<<path<<endl;
 	while(1)
 	{
-		//clear_terminal();
+		clear_line();
+		cout << "\r";
 		int input;
 		string temp="";
 		vector<string> cmds;
@@ -353,11 +362,13 @@ char* command_mode(char* path)
         	if (pw) 
         	{
                	home=string(pw -> pw_dir) +"/";
-               	cout<<home<<endl;
+               	//cout<<home<<endl;
                }
    		//cout<<cmds.size()<<endl;
    		for(int i=0;i<cmds.size();i++)
    		{
+   			if(cmds[i]=="~")
+   				cmds[i]=home;
    			if (cmds[i][0] == '~')
         			cmds[i] = home + cmds[i].substr(2);
    			/*else if (cmds[i][0] == '/') 
@@ -376,16 +387,16 @@ char* command_mode(char* path)
    			string op=cmds[0];
    			if(op=="search")
    			{
-   				cout<<endl<<"path= "<<cmds[1]<<endl;
+   				//cout<<endl<<"path= "<<cmds[1]<<endl;
    				if(check_if_path_exists(cmds[1]))
-   				cout<<"True"<<endl;
+   				cout<<" True"<<endl;
    				else
    				{
    					bool b=search(cmds[1],path);
    					if(b)
-   					cout<<"True"<<endl;
+   					cout<<" True"<<endl;
    					else
-   					cout<<"False"<<endl;
+   					cout<<" False"<<endl;
    				}
    			}
    			else if(op=="goto")
@@ -399,6 +410,12 @@ char* command_mode(char* path)
    				
    				char* fp=new char[finalpath.size()+1];
    				strcpy(fp,finalpath.c_str());
+   				
+   				while(!fstack.empty())
+                		{
+                			fstack.pop();
+                		}
+              			bstack.push(string(path));
    				
    				path=fp;
    			}
@@ -549,10 +566,10 @@ char* command_mode(char* path)
    					strcpy(nn,new_name.c_str());
 					
 					int r=rename(on,nn);
-					if(r)
+					/*if(r)
 					cout<<"Renaming is unsuccesful"<<endl;   
 					else
-					cout<<"Successful renaming"<<endl;					
+					cout<<"Successful renaming"<<endl;*/					
    				}
    			}
    			else if(op=="create_file")
@@ -602,8 +619,8 @@ void open_directory(char* path)
 {
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-   	//lines=w.ws_row;
-	lines=20;
+   	lines=w.ws_row-2;
+	//lines=20;
 	getcwd(currdir, 256);
 	root=path;
 	files.clear();
@@ -822,6 +839,19 @@ void move_cursor_normally(int index,int prev_pos)
 		else if (ch == 104 || ch == 72)
 		{
 			c1=0;
+			register uid_t uid;
+        		register gid_t gid;
+        		register struct group * g;
+        		register struct passwd * pw;       
+        		uid = geteuid();
+        		pw = getpwuid(uid);
+        		string home;
+        		if (pw) 
+        		{
+               		home=string(pw -> pw_dir) +"/";
+               		//cout<<home<<endl;
+               	}
+   		
 			if(string(root)!=".")
 			{
 				while(!fstack.empty())
@@ -830,9 +860,8 @@ void move_cursor_normally(int index,int prev_pos)
                 		}
               			bstack.push(string(root));
               		}
-              		string str("/home/dell");
-              		char* path=new char[str.length() + 1];
-			strcpy(path, str.c_str());
+              		char* path=new char[home.length() + 1];
+			strcpy(path, home.c_str());
 			open_directory(path);
 			list_files(0,0);
 		}	
@@ -899,8 +928,9 @@ void move_cursor_normally(int index,int prev_pos)
 			struct winsize w;
 			ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
    			//printf("lines %d\n", w.ws_row);
-   			//set_cursor(w.ws_row-1,1);
    			clear_terminal();
+   			set_cursor(w.ws_row-1,1);
+   			//clear_terminal();
    			root=command_mode(root);
    			open_directory(root);
    			list_files(0,0);
