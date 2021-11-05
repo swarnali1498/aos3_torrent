@@ -202,6 +202,122 @@ int main(int argc, char *argv[])
     			cout<<endl;
     		}		
     	}
+    	else if(cmd=="leave_group")
+    	{
+    		if(i==command.size())
+    		{
+    			cout<<"Enter group id"<<endl;
+    			continue;
+    		}
+    		string gid=command.substr(i+1);
+    		
+    		string msg="5<"+gid+">";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+		int n = write(sockfd,buf,strlen(buf));
+		if (n < 0) 
+			cout<<"Could not write to socket"<<endl;
+
+    		char buf1[256];
+    		int n1 = read(sockfd,buf1,255);
+    		if (n1 < 0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+         	{
+         		for(int i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}		
+    	}
+    	else if(cmd=="list_requests")
+    	{
+    		if(i==command.size())
+    		{
+    			cout<<"Enter group id"<<endl;
+    			continue;
+    		}
+    		string gid=command.substr(i+1);
+    		
+    		string msg="6<"+gid+">";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+		int n = write(sockfd,buf,strlen(buf));
+		if (n < 0) 
+			cout<<"Could not write to socket"<<endl;
+
+    		char buf1[256];
+    		int n1 = read(sockfd,buf1,255);
+    		if (n1 < 0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+         	{
+         		for(int i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}
+    	}
+    	else if(cmd=="accept_request")
+    	{
+    		if(i==command.size())
+    		{
+    			cout<<"Enter group id and user id"<<endl;
+    			continue;
+    		}
+    		command=command.substr(i+1);
+    		string gid="",uid;
+    		for(i=0;i<command.size();i++)
+    		{
+    			if(command[i]==' ')
+    			{
+    				break;
+    			}
+    			gid+=command[i];
+    		}	
+    		if(i==command.size())
+    		{
+    			cout<<"Enter user id"<<endl;
+    			continue;
+    		}
+    		uid=command.substr(i+1);
+   	 	
+   	 	string msg="7<"+gid+"><"+uid+">";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+    		int n = write(sockfd,buf,strlen(buf));
+    		if (n < 0) 
+         		cout<<"Could not write to socket"<<endl;
+		
+		char buf1[256];
+		int n1=read(sockfd,buf1,255);
+    		if (n1<0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+    		{
+    			for(int i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}
+    	}
+ 	if(cmd=="list_groups")
+ 	{
+ 		string msg="8";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+    		int n = write(sockfd,buf,strlen(buf));
+    		if (n < 0) 
+         		cout<<"Could not write to socket"<<endl;
+		
+		char buf1[256];
+		int n1=read(sockfd,buf1,255);
+    		if (n1<0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+    		{
+    			for(int i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}
+ 	}   	
     }	
     close(sockfd);
     return 0;
