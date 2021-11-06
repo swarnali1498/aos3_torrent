@@ -186,27 +186,29 @@ void* tracker_functions(void* info)
 	     		string addr=client_ip+" "+client_port;
      			if(client_map.find(addr)==client_map.end())
      			{
-     				cout<<"Please register first"<<endl;
-     				continue;
+     				buf="Please register first";
      			}
-     			string uid=client_map[addr];
-     			if(logged_in[uid]!=true)
-     			{
-     				buf="Please log in first";
-     			}	
      			else
      			{
-     				if(groups.find(gid)!=groups.end())
-     				{
-     					buf="Please use a different group id, group "+gid+" already present";
-     				}
-     				else
-     				{
-     					owners[gid]=uid;
-     					groups[gid].push_back(uid);
-     					buf="Group successfully created";
-     				}
-     			}
+     				string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}	
+	     			else
+	     			{
+	     				if(groups.find(gid)!=groups.end())
+	     				{
+	     					buf="Please use a different group id, group "+gid+" already present";
+	     				}
+	     				else
+	     				{
+	     					owners[gid]=uid;
+	     					groups[gid].push_back(uid);
+	     					buf="Group successfully created";
+	     				}
+	     			}
+	     		}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
  			int n1 = write(newsockfd,msg,strlen(msg));
@@ -228,50 +230,59 @@ void* tracker_functions(void* info)
 	     		string addr=client_ip+" "+client_port;
      			if(client_map.find(addr)==client_map.end())
      			{
-     				cout<<"Please register first"<<endl;
-     				continue;
+     				buf="Please register first";
      			}
-     			string uid=client_map[addr];
-     			if(logged_in[uid]!=true)
-     			{
-     				buf="Please log in first";
-     			}	
      			else
      			{
-     				vector<string> v=groups[gid];
-     				int f=0;
-     				for(int i=0;i<v.size();i++)
-     				{
-     					if(v[i]==uid)
-     					{
-     						buf="Already inside group "+gid;
-     						f=1;
-     						break;
-     					}
-     				}
-     				if(!f)
-     				{
-     					vector<string> v=pending[gid];
-     					int f1=0;
-     					for(int i=0;i<v.size();i++)
-     					{
-     						if(v[i]==uid)
-     						{
-     							f1=1;
-     							break;
-     						}
-     					}	
-     					if(f1)
-     					{
-     						buf="Request for joining group "+gid+" already pending";
-     					}
-     					else
-     					{
-     						pending[gid].push_back(uid);
-     						buf="Joining request sent for group "+gid;
-     					}
-     				}
-     			}
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}	
+	     			else
+	     			{
+	     				if(groups.find(gid)==groups.end())
+	     				{
+	     					buf="No such group present";
+	     				}
+	     				else
+	     				{
+		     				vector<string> v=groups[gid];
+		     				int f=0;
+		     				for(int i=0;i<v.size();i++)
+		     				{
+		     					if(v[i]==uid)
+		     					{
+		     						buf="Already inside group "+gid;
+		     						f=1;
+		     						break;
+		     					}
+		     				}
+		     				if(!f)
+		     				{
+		     					vector<string> v=pending[gid];
+		     					int f1=0;
+		     					for(int i=0;i<v.size();i++)
+		     					{
+		     						if(v[i]==uid)
+		     						{
+		     							f1=1;
+		     							break;
+		     						}
+		     					}	
+		     					if(f1)
+		     					{
+		     						buf="Request for joining group "+gid+" already pending";
+		     					}
+		     					else
+		     					{
+		     						pending[gid].push_back(uid);
+		     						buf="Joining request sent for group "+gid;
+		     					}
+		     				}
+		     			}
+	     			}
+	     		}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
  			int n1 = write(newsockfd,msg,strlen(msg));
@@ -294,36 +305,38 @@ void* tracker_functions(void* info)
      			if(client_map.find(addr)==client_map.end())
      			{
      				cout<<"Please register first"<<endl;
-     				continue;
-     			}
-     			string uid=client_map[addr];
-     			cout<<uid<<endl;
-     			if(logged_in[uid]!=true)
-     			{
-     				buf="Please log in first";
      			}
      			else
      			{
-     				vector<string>::iterator itr;
-     				for(itr=groups[gid].begin();itr!=groups[gid].end();itr++)
-     				{
-     					if(*itr==uid)
-     					{
-     						break;
-     					}
-     				}
-     				if(itr==groups[gid].end())
-     				{
-     					buf="You are not part of group "+gid;
-     				}
-     				else
-     				{
-     					groups[gid].erase(itr);
-     					if(groups[gid].size()==0)
-     					groups.erase(gid);
-     					buf="You have left group "+gid;
-     				}
-     			}
+	     			string uid=client_map[addr];
+	     			cout<<uid<<endl;
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{
+	     				vector<string>::iterator itr;
+	     				for(itr=groups[gid].begin();itr!=groups[gid].end();itr++)
+	     				{
+	     					if(*itr==uid)
+	     					{
+	     						break;
+	     					}
+	     				}
+	     				if(itr==groups[gid].end())
+	     				{
+	     					buf="You are not part of group "+gid;
+	     				}
+	     				else
+	     				{
+	     					groups[gid].erase(itr);
+	     					if(groups[gid].size()==0)
+	     					groups.erase(gid);
+	     					buf="You have left group "+gid;
+	     				}
+	     			}
+	     		}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
  			int n1 = write(newsockfd,msg,strlen(msg));
@@ -346,40 +359,42 @@ void* tracker_functions(void* info)
      			if(client_map.find(addr)==client_map.end())
      			{
      				buf="Please register first";
-     				continue;
-     			}
-     			string uid=client_map[addr];
-     			if(logged_in[uid]!=true)
-     			{
-     				buf="Please log in first";
      			}
      			else
      			{
-     				string admin=owners[gid];
-				if(admin!=uid)
-				{
-					buf="You are not the owner of group "+gid;
-				}
-				else
-				{
-     					if(pending[gid].size()==0)
-     						buf="No pending requests for group "+gid;
-     					else
-     					{
-     						buf="";
-     						vector<string> v=pending[gid];
-	     					for(auto itr:v)
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{
+	     				string admin=owners[gid];
+					if(admin!=uid)
+					{
+						buf="You are not the owner of group "+gid;
+					}
+					else
+					{
+	     					if(pending[gid].size()==0)
+	     						buf="No pending requests for group "+gid;
+	     					else
 	     					{
-	     						buf+=itr+" ";
-	     					}
+	     						buf="";
+	     						vector<string> v=pending[gid];
+		     					for(auto itr:v)
+		     					{
+		     						buf+=itr+" ";
+		     					}
+		     				}
 	     				}
-     				}
-     				char* msg=new char[buf.size()+1];
-	     			strcpy(msg, buf.c_str());  
- 				int n1 = write(newsockfd,msg,strlen(msg));
-    				if (n1 < 0) 
-         				cout<<"Could not write to socket"<<endl;
-     			}
+	     			}
+	     		}
+	     		char* msg=new char[buf.size()+1];
+		     	strcpy(msg, buf.c_str());  
+	 		int n1 = write(newsockfd,msg,strlen(msg));
+	    		if (n1 < 0) 
+		 		cout<<"Could not write to socket"<<endl;
      		}	
      		// accept group joining request
      		if(ch=='7')
@@ -405,42 +420,44 @@ void* tracker_functions(void* info)
 	     		string addr=client_ip+" "+client_port;
      			if(client_map.find(addr)==client_map.end())
      			{
-     				cout<<"Please register first"<<endl;
-     				continue;
-     			}
-     			string uid=client_map[addr];
-     			if(logged_in[uid]!=true)
-     			{
-     				buf="Please log in first";
+     				buf="Please register first";
      			}
      			else
-     			{	
-     				string admin=owners[gid];
-				if(admin!=uid)
-				{
-					buf="You are not the owner of group "+gid;
-				}
-				else
-				{
-					int f=0;
-					vector<string>::iterator itr;
-					for(itr=pending[gid].begin();itr!=pending[gid].end();itr++)
+     			{
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{	
+	     				string admin=owners[gid];
+					if(admin!=uid)
 					{
-						if(*itr==user)
-						{
-							f=1;
-							break;
-						}
-					}
-					if(!f)
-					{
-						buf="User "+user+" not present in group "+gid;
+						buf="You are not the owner of group "+gid;
 					}
 					else
 					{
-						pending[gid].erase(itr);
-						groups[gid].push_back(user);
-						buf="Successfully added user "+user+" to "+"group "+gid;
+						int f=0;
+						vector<string>::iterator itr;
+						for(itr=pending[gid].begin();itr!=pending[gid].end();itr++)
+						{
+							if(*itr==user)
+							{
+								f=1;
+								break;
+							}
+						}
+						if(!f)
+						{
+							buf="User "+user+" not present in group "+gid;
+						}
+						else
+						{
+							pending[gid].erase(itr);
+							groups[gid].push_back(user);
+							buf="Successfully added user "+user+" to "+"group "+gid;
+						}
 					}
 				}
 			}
@@ -457,40 +474,42 @@ void* tracker_functions(void* info)
      			string addr=client_ip+" "+client_port;
      			if(client_map.find(addr)==client_map.end())
      			{
-     				cout<<"Please register first"<<endl;
-     				continue;
-     			}
-     			string uid=client_map[addr];
-     			if(logged_in[uid]!=true)
-     			{
-     				buf="Please log in first";
+     				buf="Please register first";
      			}
      			else
-     			{	
-     				if(groups.size()==0)
-     				{
-     					buf="No groups in network";
-     				}	
-     				else
-     				{
-     					for(auto itr:groups)
-     					{
-     						if(itr!=*groups.begin())
-	     						buf+="\n";
-	     					buf+=itr.first+" : ";
-     						vector<string> v=itr.second;
-     						for(auto itr1:v)
-	     					{
-	     						buf+=itr1+" ";
-	     					}
-	     				}
+     			{
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
 	     			}
-	     			char* msg=new char[buf.size()+1];
-		     		strcpy(msg, buf.c_str());  
-	 			int n1 = write(newsockfd,msg,strlen(msg));
-	    			if (n1 < 0) 
-		 			cout<<"Could not write to socket"<<endl;
-		 	}
+	     			else
+	     			{	
+	     				if(groups.size()==0)
+	     				{
+	     					buf="No groups in network";
+	     				}	
+	     				else
+	     				{
+	     					for(auto itr:groups)
+	     					{
+	     						if(itr!=*groups.begin())
+		     						buf+="\n";
+		     					buf+=itr.first+" : ";
+	     						vector<string> v=itr.second;
+	     						for(auto itr1:v)
+		     					{
+		     						buf+=itr1+" ";
+		     					}
+		     				}
+		     			}
+		     		}
+			 }
+			 char* msg=new char[buf.size()+1];
+			 strcpy(msg, buf.c_str());  
+		 	 int n1 = write(newsockfd,msg,strlen(msg));
+		    	 if (n1 < 0) 
+			 	cout<<"Could not write to socket"<<endl;
      		}
     	}
 }
