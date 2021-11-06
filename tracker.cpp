@@ -17,7 +17,8 @@ unordered_map<string,string> owners;
 unordered_map<string,vector<string>> groups;
 unordered_map<string,vector<string>> pending;
 unordered_map<string,vector<string>> pending_clients;
-pthread_t clients[30];
+vector<int> sckfd;
+vector<pthread_t> tid(20);
 int ind=0;
 
 class clientInfo
@@ -46,6 +47,11 @@ void* tracker_functions(void* info)
      		char ch=buf[0];
      		if(buf.size()>2)
      		buf=buf.substr(2);
+     		//close client
+     		if(ch=='0')
+     		{
+     			pthread_exit(NULL);
+     		}
 		// register client
         	if(ch=='1')
         	{
@@ -67,17 +73,29 @@ void* tracker_functions(void* info)
 	     		}
 	     		
 	     		string buf;
-	     		if(client_list.find(userid)!=client_list.end())
+	     		string addr=client_ip+" "+client_port;
+	     		if(client_map.find(addr)!=client_map.end())
+	     		{
+	     			buf="You have already registered. Please login to continue";
+	     		}
+	     		else if(client_list.find(userid)!=client_list.end())
 	     		{
 	     			buf="Please provide a different user id";	
 	     		}
 	     		else
 	     		{
-	     			client_list[userid]={password,client_ip,client_port};
-	     			string addr=client_ip+" "+client_port;
-	     			client_map[addr]=userid;
-	     			logged_in[userid]=false;
-	     			buf="Registration successful";
+	     			if(client_list.find(userid)!=client_list.end())
+	     			{
+	     				buf="Use a different user id";
+	     			}
+	     			else
+	     			{
+	     				client_list[userid]={password,client_ip,client_port};
+	     				string addr=client_ip+" "+client_port;
+	     				client_map[addr]=userid;
+	     				logged_in[userid]=false;
+	     				buf="Registration successful";
+	     			}
 	     		}
 	     		char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
@@ -116,35 +134,44 @@ void* tracker_functions(void* info)
      				}
      				cout<<endl;
      			}*/
-     			
-     			string buf;
-     			if(logged_in[userid]==true)
-     			{
-     				buf="Already logged in";
-     			}	
-     			else if(client_list.find(userid)==client_list.end())
-     			{
- 				buf="Wrong userid/password";
-     			}
-     			else
-     			{
-     				vector<string> v=client_list[userid];
-     				if(v[0]!=password)
-     				{
- 					buf="Wrong userid/password";
- 				}
-     				else
-     				{
-     					logged_in[userid]=true;
- 					buf="Successfully logged in";
- 				}
-     			}
+     			string addr=client_ip+" "+client_port;
+	     		string uid=client_map.find(addr);
+	     		if(uid!=userid)
+	     		{
+	     			buf="Wrong userid/password";
+	     		}
+	     		else
+	     		{
+     				string buf;
+	     			if(logged_in[userid]==true)
+	     			{
+	     				buf="Already logged in";
+	     			}	
+	     			else if(client_list.find(userid)==client_list.end())
+	     			{
+	 				buf="Wrong userid/password";
+	     			}
+	     			else
+	     			{
+	     				vector<string> v=client_list[userid];
+	     				if(v[0]!=password)
+	     				{
+	 					buf="Wrong userid/password";
+	 				}
+	     				else
+	     				{
+	     					logged_in[userid]=true;
+	 					buf="Successfully logged in";
+	 				}
+	     			}
+	     		}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
  			int n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
+     		// create group
      		if(ch=='3')
      		{
      			string gid="";
@@ -169,9 +196,16 @@ void* tracker_functions(void* info)
      			}	
      			else
      			{
-     				owners[gid]=uid;
-     				groups[gid].push_back(uid);
-     				buf="Group successfully created";
+     				if(groups.find(gid)!=groups.end())
+     				{
+     					buf="Please use a different group id, group "+gid+" already present";
+     				}
+     				else
+     				{
+     					owners[gid]=uid;
+     					groups[gid].push_back(uid);
+     					buf="Group successfully created";
+     				}
      			}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
@@ -179,6 +213,7 @@ void* tracker_functions(void* info)
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
+     		// join group
      		if(ch=='4')
      		{
      			string gid="";
@@ -222,11 +257,11 @@ void* tracker_functions(void* info)
      					{
      						if(v[i]==uid)
      						{
-     							f1=1
+     							f1=1;
      							break;
      						}
      					}	
-     					if(!f1)
+     					if(f1)
      					{
      						buf="Request for joining group "+gid+" already pending";
      					}
@@ -243,6 +278,7 @@ void* tracker_functions(void* info)
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
+     		// leave group
      		if(ch=='5')
      		{
      			string gid="";
@@ -261,28 +297,30 @@ void* tracker_functions(void* info)
      				continue;
      			}
      			string uid=client_map[addr];
+     			cout<<uid<<endl;
      			if(logged_in[uid]!=true)
      			{
      				buf="Please log in first";
      			}
      			else
      			{
-     				vector<string> group_list=groups[gid];
      				vector<string>::iterator itr;
-     				for(itr=group_list.begin();itr!=group_list.end();itr++)
+     				for(itr=groups[gid].begin();itr!=groups[gid].end();itr++)
      				{
      					if(*itr==uid)
      					{
      						break;
      					}
      				}
-     				if(itr==group_list.end())
+     				if(itr==groups[gid].end())
      				{
      					buf="You are not part of group "+gid;
      				}
      				else
      				{
      					groups[gid].erase(itr);
+     					if(groups[gid].size()==0)
+     					groups.erase(gid);
      					buf="You have left group "+gid;
      				}
      			}
@@ -292,6 +330,7 @@ void* tracker_functions(void* info)
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
+     		// list pending join
      		if(ch=='6')
      		{
      			string gid="";
@@ -306,7 +345,7 @@ void* tracker_functions(void* info)
 	     		string addr=client_ip+" "+client_port;
      			if(client_map.find(addr)==client_map.end())
      			{
-     				cout<<"Please register first"<<endl;
+     				buf="Please register first";
      				continue;
      			}
      			string uid=client_map[addr];
@@ -342,6 +381,7 @@ void* tracker_functions(void* info)
          				cout<<"Could not write to socket"<<endl;
      			}
      		}	
+     		// accept group joining request
      		if(ch=='7')
      		{
      			string gid="";
@@ -410,6 +450,7 @@ void* tracker_functions(void* info)
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
+     		// list all groups in network
      		if(ch=='8')
      		{
      			string buf;
@@ -434,10 +475,10 @@ void* tracker_functions(void* info)
      				{
      					for(auto itr:groups)
      					{
-     						buf+=itr.first+" :";
-     						vector<string> v=itr.second;
      						if(itr!=*groups.begin())
 	     						buf+="\n";
+	     					buf+=itr.first+" : ";
+     						vector<string> v=itr.second;
      						for(auto itr1:v)
 	     					{
 	     						buf+=itr1+" ";
@@ -456,15 +497,23 @@ void* tracker_functions(void* info)
 
 void* check_if_quit(void* param)
 {
-	int* sockfd=(int*)param;
+	vector<int>* sockfd=(vector<int>*)param;
 	while(1)
 	{
 		string cmd;
 		cin>>cmd;
 		if(cmd=="quit")
 		{
-			//cout<<*sockfd<<endl;
-			close(*sockfd);
+			vector<int> v=*sockfd;
+			//cout<<ind<<" "<<v.size()<<endl;
+			for(int i=0;i<v.size();i++)
+			{	
+				close(v[i]);
+			}
+			for(auto itr:tid)
+     			{
+     				pthread_cancel(itr);
+     			}
 			exit(0);
 		}
 	}
@@ -487,27 +536,27 @@ int main(int argc, char *argv[])
      serv_addr.sin_family = AF_INET;
      serv_addr.sin_addr.s_addr = INADDR_ANY;
      serv_addr.sin_port = htons(portno);
-     //cout<<sockfd<<endl;
+     sckfd.push_back(sockfd);
      if (bind(sockfd, (struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
      {         
      	cout<<"Error on binding"<<endl;
      	exit(0);
      }
      listen(sockfd,5);
-     
      pthread_t check_quit;
      clilen = sizeof(cli_addr);
      
-     if(pthread_create(&check_quit,NULL,check_if_quit,(void*)&sockfd)!=0)
+     if(pthread_create(&check_quit,NULL,check_if_quit,(void*)&sckfd)!=0)
      {
      	cout<<"Thread creation failed"<<endl;
      }
      while(1)
      {
      	newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-     	cout<<newsockfd<<endl;
      	if (newsockfd < 0) 
           cout<<"Error on accept"<<endl;
+        
+        sckfd.push_back(newsockfd);
         
         string client_ip=string(inet_ntoa(cli_addr.sin_addr));
         string client_port=to_string(ntohs(cli_addr.sin_port));
@@ -516,13 +565,9 @@ int main(int argc, char *argv[])
         newinfo->sockfd=newsockfd;
         newinfo->ip=client_ip;
         newinfo->port=client_port;
-        
-        pthread_t tid;	
-        if(pthread_create(&tid,NULL,&tracker_functions,(void*)newinfo)!=0)
-        	cout<<"Thread creation failed"<<endl;
-        
-        pthread_detach(tid);
-        
+        if(pthread_create(&tid[ind++],NULL,&tracker_functions,(void*)newinfo)!=0)
+        	cout<<"Thread creation failed"<<endl;   
+     	pthread_detach(tid[ind-1]);
      }
      /*printf("Here is the message: %s\n",buffer);
      n = write(newsockfd,"I got your message",18);

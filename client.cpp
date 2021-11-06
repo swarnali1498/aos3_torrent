@@ -7,17 +7,6 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 using namespace std;
-
-void quit(int sockfd)
-{
-    string msg="3";
-    char* buf=new char[msg.size()+1];
-    strcpy(buf, msg.c_str());  
-    int n = write(sockfd,buf,strlen(buf));
-    if (n < 0) 
-         cout<<"Could not write to socket"<<endl;
-    close(sockfd);
-}
 	
 int main(int argc, char *argv[])
 {
@@ -61,7 +50,12 @@ int main(int argc, char *argv[])
     	}
     	if(cmd=="quit")
     	{
-    		quit(sockfd);
+    		string msg="0";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+    		int n = write(sockfd,buf,strlen(buf));
+    		if (n < 0) 
+         		cout<<"Could not write to socket"<<endl;
     		break;
     	}
     	else if(cmd=="create_user")
