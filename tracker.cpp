@@ -107,6 +107,7 @@ void* tracker_functions(void* info)
      		//login client
      		if(ch=='2')
      		{	
+     			//cout<<"2"<<endl;
      			string userid="";
 	     		int i,j;
 	     		for(i=0;i<buf.size();i++)
@@ -123,6 +124,7 @@ void* tracker_functions(void* info)
 	     			break;
 	     			password+=buf[i];
 	     		}
+	     		//cout<<userid<<" "<<password<<endl;
 	     		/*cout<<"Showing clients"<<endl;
      			for(auto itr:client_list)
      			{
@@ -135,38 +137,38 @@ void* tracker_functions(void* info)
      				cout<<endl;
      			}*/
      			string addr=client_ip+" "+client_port;
-	     		string uid=client_map.find(addr);
+	     		string uid=client_map[addr];
+	     		string buf1;
 	     		if(uid!=userid)
 	     		{
-	     			buf="Wrong userid/password";
+	     			buf1="Wrong userid/password";
 	     		}
 	     		else
 	     		{
-     				string buf;
-	     			if(logged_in[userid]==true)
+     				if(logged_in[userid]==true)
 	     			{
-	     				buf="Already logged in";
+	     				buf1="Already logged in";
 	     			}	
 	     			else if(client_list.find(userid)==client_list.end())
 	     			{
-	 				buf="Wrong userid/password";
+	 				buf1="Wrong userid/password";
 	     			}
 	     			else
 	     			{
 	     				vector<string> v=client_list[userid];
 	     				if(v[0]!=password)
 	     				{
-	 					buf="Wrong userid/password";
+	 					buf1="Wrong userid/password";
 	 				}
 	     				else
 	     				{
 	     					logged_in[userid]=true;
-	 					buf="Successfully logged in";
+	 					buf1="Successfully logged in";
 	 				}
 	     			}
 	     		}
-     			char* msg=new char[buf.size()+1];
-	     		strcpy(msg, buf.c_str());  
+     			char* msg=new char[buf1.size()+1];
+	     		strcpy(msg, buf1.c_str());  
  			int n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
@@ -584,9 +586,10 @@ int main(int argc, char *argv[])
         newinfo->sockfd=newsockfd;
         newinfo->ip=client_ip;
         newinfo->port=client_port;
-        if(pthread_create(&tid[ind++],NULL,&tracker_functions,(void*)newinfo)!=0)
+        pthread_t t;
+        if(pthread_create(&t,NULL,&tracker_functions,(void*)newinfo)!=0)
         	cout<<"Thread creation failed"<<endl;   
-     	pthread_detach(tid[ind-1]);
+     	pthread_detach(t);
      }
      /*printf("Here is the message: %s\n",buffer);
      n = write(newsockfd,"I got your message",18);
