@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include<fstream>
 #include <pthread.h>
 using namespace std;
 
@@ -17,6 +18,8 @@ unordered_map<string,string> owners;
 unordered_map<string,vector<string>> groups;
 unordered_map<string,vector<string>> pending;
 unordered_map<string,vector<string>> pending_clients;
+unordered_map<string,vector<string>> uploaded_files;
+
 vector<int> sckfd;
 vector<pthread_t> tid(20);
 int ind=0;
@@ -48,12 +51,12 @@ void* tracker_functions(void* info)
      		if(buf.size()>2)
      		buf=buf.substr(2);
      		//close client
-     		if(ch=='0')
+     		if(ch=='a')
      		{
      			pthread_exit(NULL);
      		}
 		// register client
-        	if(ch=='1')
+        	if(ch=='b')
         	{
         		string userid="";
 	     		int i,j;
@@ -105,7 +108,7 @@ void* tracker_functions(void* info)
  		}
      	
      		//login client
-     		if(ch=='2')
+     		if(ch=='c')
      		{	
      			//cout<<"2"<<endl;
      			string userid="";
@@ -174,7 +177,7 @@ void* tracker_functions(void* info)
          			cout<<"Could not write to socket"<<endl;
      		}
      		// create group
-     		if(ch=='3')
+     		if(ch=='d')
      		{
      			string gid="";
 	     		int i,j;
@@ -218,7 +221,7 @@ void* tracker_functions(void* info)
          			cout<<"Could not write to socket"<<endl;
      		}
      		// join group
-     		if(ch=='4')
+     		if(ch=='e')
      		{
      			string gid="";
 	     		int i,j;
@@ -292,7 +295,7 @@ void* tracker_functions(void* info)
          			cout<<"Could not write to socket"<<endl;
      		}
      		// leave group
-     		if(ch=='5')
+     		if(ch=='f')
      		{
      			string gid="";
 	     		int i,j;
@@ -318,25 +321,32 @@ void* tracker_functions(void* info)
 	     			}
 	     			else
 	     			{
-	     				vector<string>::iterator itr;
-	     				for(itr=groups[gid].begin();itr!=groups[gid].end();itr++)
+	     				if(groups.find(gid)==groups.end())
 	     				{
-	     					if(*itr==uid)
-	     					{
-	     						break;
-	     					}
-	     				}
-	     				if(itr==groups[gid].end())
-	     				{
-	     					buf="You are not part of group "+gid;
+	     					buf="No such group present";
 	     				}
 	     				else
 	     				{
-	     					groups[gid].erase(itr);
-	     					if(groups[gid].size()==0)
-	     					groups.erase(gid);
-	     					buf="You have left group "+gid;
-	     				}
+	     					vector<string>::iterator itr;
+		     				for(itr=groups[gid].begin();itr!=groups[gid].end();itr++)
+		     				{
+		     					if(*itr==uid)
+		     					{
+		     						break;
+		     					}
+		     				}
+		     				if(itr==groups[gid].end())
+		     				{
+		     					buf="You are not part of group "+gid;
+		     				}
+		     				else
+		     				{
+		     					groups[gid].erase(itr);
+		     					if(groups[gid].size()==0)
+		     					groups.erase(gid);
+		     					buf="You have left group "+gid;
+		     				}
+		     			}
 	     			}
 	     		}
      			char* msg=new char[buf.size()+1];
@@ -346,7 +356,7 @@ void* tracker_functions(void* info)
          			cout<<"Could not write to socket"<<endl;
      		}
      		// list pending join
-     		if(ch=='6')
+     		if(ch=='g')
      		{
      			string gid="";
 	     		int i,j;
@@ -371,25 +381,32 @@ void* tracker_functions(void* info)
 	     			}
 	     			else
 	     			{
-	     				string admin=owners[gid];
-					if(admin!=uid)
-					{
-						buf="You are not the owner of group "+gid;
-					}
-					else
-					{
-	     					if(pending[gid].size()==0)
-	     						buf="No pending requests for group "+gid;
-	     					else
-	     					{
-	     						buf="";
-	     						vector<string> v=pending[gid];
-		     					for(auto itr:v)
-		     					{
-		     						buf+=itr+" ";
-		     					}
-		     				}
+	     				if(groups.find(gid)==groups.end())
+	     				{
+	     					buf="No such group present";
 	     				}
+	     				else
+	     				{
+		     				string admin=owners[gid];
+						if(admin!=uid)
+						{
+							buf="You are not the owner of group "+gid;
+						}
+						else
+						{
+		     					if(pending[gid].size()==0)
+		     						buf="No pending requests for group "+gid;
+		     					else
+		     					{
+		     						buf="";
+		     						vector<string> v=pending[gid];
+			     					for(auto itr:v)
+			     					{
+			     						buf+=itr+" ";
+			     					}
+			     				}
+		     				}
+		     			}
 	     			}
 	     		}
 	     		char* msg=new char[buf.size()+1];
@@ -399,7 +416,7 @@ void* tracker_functions(void* info)
 		 		cout<<"Could not write to socket"<<endl;
      		}	
      		// accept group joining request
-     		if(ch=='7')
+     		if(ch=='h')
      		{
      			string gid="";
 	     		int i,j;
@@ -432,33 +449,40 @@ void* tracker_functions(void* info)
 	     				buf="Please log in first";
 	     			}
 	     			else
-	     			{	
-	     				string admin=owners[gid];
-					if(admin!=uid)
-					{
-						buf="You are not the owner of group "+gid;
-					}
-					else
-					{
-						int f=0;
-						vector<string>::iterator itr;
-						for(itr=pending[gid].begin();itr!=pending[gid].end();itr++)
+	     			{
+	     				if(groups.find(gid)==groups.end())
+	     				{
+	     					buf="No such group present";
+	     				}
+		     			else
+		     			{	
+		     				string admin=owners[gid];
+						if(admin!=uid)
 						{
-							if(*itr==user)
-							{
-								f=1;
-								break;
-							}
-						}
-						if(!f)
-						{
-							buf="User "+user+" not present in group "+gid;
+							buf="You are not the owner of group "+gid;
 						}
 						else
 						{
-							pending[gid].erase(itr);
-							groups[gid].push_back(user);
-							buf="Successfully added user "+user+" to "+"group "+gid;
+							int f=0;
+							vector<string>::iterator itr;
+							for(itr=pending[gid].begin();itr!=pending[gid].end();itr++)
+							{
+								if(*itr==user)
+								{
+									f=1;
+									break;
+								}
+							}
+							if(!f)
+							{
+								buf="User "+user+" not present in group "+gid;
+							}
+							else
+							{
+								pending[gid].erase(itr);
+								groups[gid].push_back(user);
+								buf="Successfully added user "+user+" to "+"group "+gid;
+							}
 						}
 					}
 				}
@@ -470,7 +494,7 @@ void* tracker_functions(void* info)
          			cout<<"Could not write to socket"<<endl;
      		}
      		// list all groups in network
-     		if(ch=='8')
+     		if(ch=='i')
      		{
      			string buf;
      			string addr=client_ip+" "+client_port;
@@ -512,6 +536,152 @@ void* tracker_functions(void* info)
 		 	 int n1 = write(newsockfd,msg,strlen(msg));
 		    	 if (n1 < 0) 
 			 	cout<<"Could not write to socket"<<endl;
+     		}
+     		//list files
+     		if(ch=='j')
+     		{
+     			string gid="";
+	     		int i,j;
+	     		for(i=0;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			gid+=buf[i];
+	     		}
+	     		string buf;
+	     		string addr=client_ip+" "+client_port;
+     			if(client_map.find(addr)==client_map.end())
+     			{
+     				buf="Please register first";
+     			}
+     			else
+     			{
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{
+	     				if(groups.find(gid)==groups.end())
+	     				{
+	     					buf="No such group present";
+	     				}
+	     				else
+	     				{
+	     					int f=0;
+	     					for(int j=0;j<groups[gid].size();j++)
+	     					{
+	     						if(groups[gid][j]==uid)
+	     						{
+	     							f=1;
+	     							break;
+	     						}
+	     					}
+	     					if(!f)
+	     					{
+	     						buf="You are not part of group "+gid;
+	     					}
+	     					else
+		     				{
+		     					if(uploaded_files[gid].size()==0)
+		     						buf="No files uploaded in group "+gid;
+		     					else
+		     					{
+		     						buf="";
+		     						vector<string> v=uploaded_files[gid];
+			     					for(auto itr:v)
+			     					{	
+			     						buf+=itr+" ";
+			     					}
+			     				}
+			     			}
+		     			}
+	     			}
+	     		}
+	     		char* msg=new char[buf.size()+1];
+		     	strcpy(msg, buf.c_str());  
+	 		int n1 = write(newsockfd,msg,strlen(msg));
+	    		if (n1 < 0) 
+		 		cout<<"Could not write to socket"<<endl;
+     		}
+     		//upload file
+     		if(ch=='k')
+     		{
+     			string filepath="";
+	     		int i,j;
+	     		for(i=0;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			filepath+=buf[i];
+	     		}
+	     		i+=2;
+	     		string gid="";
+	     		for(;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			gid+=buf[i];
+	     		}
+	     		
+	     		string buf;
+	     		string addr=client_ip+" "+client_port;
+     			if(client_map.find(addr)==client_map.end())
+     			{
+     				buf="Please register first";
+     			}
+     			else
+     			{
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{
+	     				fstream fs;
+	     				fs.open(filepath);
+		     			if(fs.fail())
+		     			{
+		     				buf="No such file present";
+		     			}
+	     				else
+		     			{	
+		     				if(groups.find(gid)==groups.end())
+	     					{
+	     						buf="No such group present";
+	     					}
+		     				else
+		     				{
+		     					vector<string> files=uploaded_files[gid];
+		     					int f=0;
+							for(auto itr:files)
+							{
+								if(itr==filepath)
+								{
+									f=1;
+									break;
+								}
+							}
+							if(f)
+							{
+								buf="File already in group "+gid;
+							}
+							else
+							{
+								uploaded_files[gid].push_back(filepath);
+								buf="Successfully uploaded file "+filepath+" to group "+gid;
+							}
+						}
+					}
+				}
+			}
+			char* msg=new char[buf.size()+1];
+	     		strcpy(msg, buf.c_str());  
+ 			int n1 = write(newsockfd,msg,strlen(msg));
+    			if (n1 < 0) 
+         			cout<<"Could not write to socket"<<endl;
      		}
     	}
 }

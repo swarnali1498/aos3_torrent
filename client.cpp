@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
     	}
     	if(cmd=="quit")
     	{
-    		string msg="0";
+    		string msg="a";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
     		int n = write(sockfd,buf,strlen(buf));
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
     		}
     		password=command.substr(i+1);
    	 	
-   	 	string msg="1<"+userid+"><"+password+">";
+   	 	string msg="b<"+userid+"><"+password+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
     		int n = write(sockfd,buf,strlen(buf));
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
     		}
     		password=command.substr(i+1);
     		
-       	string msg="2<"+userid+"><"+password+">";
+       	string msg="c<"+userid+"><"+password+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
 		int n = write(sockfd,buf,strlen(buf));
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
     		}
     		string gid=command.substr(i+1);
     		
-    		string msg="3<"+gid+">";
+    		string msg="d<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
 		int n = write(sockfd,buf,strlen(buf));
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
     		}
     		string gid=command.substr(i+1);
     		
-    		string msg="4<"+gid+">";
+    		string msg="e<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
 		int n = write(sockfd,buf,strlen(buf));
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
     		}
     		string gid=command.substr(i+1);
     		
-    		string msg="5<"+gid+">";
+    		string msg="f<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
 		int n = write(sockfd,buf,strlen(buf));
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
     		}
     		string gid=command.substr(i+1);
     		
-    		string msg="6<"+gid+">";
+    		string msg="g<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
 		int n = write(sockfd,buf,strlen(buf));
@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
     		}
     		uid=command.substr(i+1);
    	 	
-   	 	string msg="7<"+gid+"><"+uid+">";
+   	 	string msg="h<"+gid+"><"+uid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
     		int n = write(sockfd,buf,strlen(buf));
@@ -418,7 +418,7 @@ int main(int argc, char *argv[])
     	}
  	if(cmd=="list_groups")
  	{
- 		string msg="8";
+ 		string msg="i";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
     		int n = write(sockfd,buf,strlen(buf));
@@ -435,7 +435,76 @@ int main(int argc, char *argv[])
     			cout<<buf1[i];
     			cout<<endl;
     		}
- 	}   	
+ 	}
+ 	if(cmd=="list_files")
+ 	{
+ 		if(i==command.size())
+    		{
+    			cout<<"Enter group id"<<endl;
+    			continue;
+    		}
+    		string gid=command.substr(i+1);
+    		
+    		string msg="j<"+gid+">";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+		int n = write(sockfd,buf,strlen(buf));
+		if (n < 0) 
+			cout<<"Could not write to socket"<<endl;
+
+    		char buf1[256];
+    		int n1 = read(sockfd,buf1,255);
+    		if (n1 < 0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+         	{
+         		for(int i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}
+ 	}
+ 	if(cmd=="upload_file")
+ 	{
+		if(i==command.size())
+    		{
+    			cout<<"Enter file path and group id"<<endl;
+    			continue;
+    		}
+    		command=command.substr(i+1);
+    		string filepath="",gid;
+    		for(i=0;i<command.size();i++)
+    		{
+    			if(command[i]==' ')
+    			{
+    				break;
+    			}
+    			filepath+=command[i];
+    		}	
+    		if(i==command.size())
+    		{
+    			cout<<"Enter group id"<<endl;
+    			continue;
+    		}
+    		gid=command.substr(i+1);
+   	 	
+   	 	string msg="k<"+filepath+"><"+gid+">";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+    		int n = write(sockfd,buf,strlen(buf));
+    		if (n < 0) 
+         		cout<<"Could not write to socket"<<endl;
+		
+		char buf1[256];
+		int n1=read(sockfd,buf1,255);
+    		if (n1<0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+    		{
+    			for(int i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}
+ 	}
     }	
     close(sockfd);
     return 0;
