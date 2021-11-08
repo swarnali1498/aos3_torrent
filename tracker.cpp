@@ -18,7 +18,8 @@ unordered_map<string,string> owners;
 unordered_map<string,vector<string>> groups;
 unordered_map<string,vector<string>> pending;
 unordered_map<string,vector<string>> pending_clients;
-unordered_map<string,vector<string>> uploaded_files;
+unordered_map<string,unordered_map<string,vector<string>>> uploaded_files;
+unordered_map<string,string> filedetails;
 
 vector<int> sckfd;
 vector<pthread_t> tid(20);
@@ -475,7 +476,7 @@ void* tracker_functions(void* info)
 							}
 							if(!f)
 							{
-								buf="User "+user+" not present in group "+gid;
+								buf="User "+user+" request not pending in group "+gid;
 							}
 							else
 							{
@@ -548,24 +549,24 @@ void* tracker_functions(void* info)
 	     			break;
 	     			gid+=buf[i];
 	     		}
-	     		string buf;
+	     		string buf1;
 	     		string addr=client_ip+" "+client_port;
      			if(client_map.find(addr)==client_map.end())
      			{
-     				buf="Please register first";
+     				buf1="Please register first";
      			}
      			else
      			{
 	     			string uid=client_map[addr];
 	     			if(logged_in[uid]!=true)
 	     			{
-	     				buf="Please log in first";
+	     				buf1="Please log in first";
 	     			}
 	     			else
 	     			{
 	     				if(groups.find(gid)==groups.end())
 	     				{
-	     					buf="No such group present";
+	     					buf1="No such group present";
 	     				}
 	     				else
 	     				{
@@ -580,27 +581,33 @@ void* tracker_functions(void* info)
 	     					}
 	     					if(!f)
 	     					{
-	     						buf="You are not part of group "+gid;
+	     						buf1="You are not part of group "+gid;
 	     					}
 	     					else
 		     				{
 		     					if(uploaded_files[gid].size()==0)
-		     						buf="No files uploaded in group "+gid;
+		     						buf1="No files uploaded in group "+gid;
 		     					else
 		     					{
-		     						buf="";
-		     						vector<string> v=uploaded_files[gid];
-			     					for(auto itr:v)
+		     						unordered_map<string,vector<string>> mp=uploaded_files[gid];
+		     						for(auto itr:mp)
 			     					{	
-			     						buf+=itr+" ";
+			     						vector<string> v=itr.second;
+			     						cout<<itr.first<<": ";
+			     						for(int j=0;j<v.size();j++)
+			     						cout<<v[j]<<" ";
+			     						cout<<endl;
+			     						buf1+=itr.first+" ";
 			     					}
+			     					//buf1=buf1.substr(0,buf1.size()-1);
 			     				}
 			     			}
 		     			}
 	     			}
 	     		}
-	     		char* msg=new char[buf.size()+1];
-		     	strcpy(msg, buf.c_str());  
+	     		char* msg=new char[buf1.size()+1];
+		     	strcpy(msg, buf1.c_str());
+		     	cout<<msg<<endl<<buf1<<endl;
 	 		int n1 = write(newsockfd,msg,strlen(msg));
 	    		if (n1 < 0) 
 		 		cout<<"Could not write to socket"<<endl;
@@ -654,25 +661,49 @@ void* tracker_functions(void* info)
 	     					}
 		     				else
 		     				{
-		     					vector<string> files=uploaded_files[gid];
-		     					int f=0;
-							for(auto itr:files)
+		     					string filename="";
+							for(i=filepath.size();i>=0;i--)
 							{
-								if(itr==filepath)
+								if(filepath[i]=='/')
 								{
-									f=1;
 									break;
 								}
+								filename=filepath[i]+filename;
 							}
-							if(f)
+							if(uploaded_files.find(gid)==uploaded_files.end())
 							{
-								buf="File already in group "+gid;
+								vector<string> v;
+								v.push_back(uid);
+								uploaded_files[gid][filename]=v;
+								filedetails[filename]=filepath;
 							}
 							else
 							{
-								uploaded_files[gid].push_back(filepath);
-								buf="Successfully uploaded file "+filepath+" to group "+gid;
+								if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
+								{
+									vector<string> v;
+									v.push_back(uid);
+									uploaded_files[gid][filename]=v;
+									filedetails[filename]=filepath;
+								}
+								else
+								{
+									int f=0;
+									for(int j=0;j<uploaded_files[gid][filename].size();j++)
+									{
+										if(uploaded_files[gid][filename][j]==uid)
+										{
+											f=1;
+											break;
+										}
+									}
+									if(!f)
+										uploaded_files[gid][filename].push_back(uid);
+									else
+										buf="File "+filename+" has already been uploaded by "+uid;
+								}
 							}
+							buf="Successfully uploaded file "+filename+" to group "+gid;
 						}
 					}
 				}
@@ -720,10 +751,25 @@ int main(int argc, char *argv[])
      {
      	cout<<"No port provided"<<endl;
      }
+     fstream fr;
+     fr.open(argv[1], ios::in);
+
+     vector<string> info;
+     if(fr.is_open())
+     {
+     	string line;
+        while(getline(fr, line))
+        {
+            info.push_back(line);
+        }
+        fr.close();
+     }
+     
+     
      sockfd = socket(AF_INET, SOCK_STREAM, 0);
      if (sockfd < 0) 
         cout<<"Cannot open socket"<<endl;
-     portno = atoi(argv[1]);
+     portno = stoi(info[1]);
      serv_addr.sin_family = AF_INET;
      serv_addr.sin_addr.s_addr = INADDR_ANY;
      serv_addr.sin_port = htons(portno);

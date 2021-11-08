@@ -13,6 +13,7 @@ using namespace std;
 	
 void* peer_as_client(void* param)
 {
+    cout<<"client"<<endl;
     char* p = (char*)param;
     struct sockaddr_in serv_addr,cli_addr;
     string ip_port = string(p);
@@ -46,10 +47,31 @@ void* peer_as_client(void* param)
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
      	   cout<<"Cannot connect"<<endl;
     
+    string msg;
+    cin>>msg;
+    char* buf=new char[msg.size()+1];
+    strcpy(buf, msg.c_str());
+    
+    int n = write(sockfd,buf,strlen(buf));
+    if (n < 0) 
+    	cout<<"Could not write to socket"<<endl;
+		
+    char buf1[256];
+    int n1=read(sockfd,buf1,255);
+    if (n1<0) 
+    	cout<<"Error reading from socket"<<endl;
+    else
+    {
+    	for(int i=0;i<n1;i++)
+    	cout<<buf1[i];
+    	cout<<endl;
+    }
+    
 }
 
 void* peer_as_server(void* param)
 {
+    // cout<<"server"<<endl;
      char* port=(char*)param;
      int peer_sockfd = socket(AF_INET, SOCK_STREAM, 0);
      if (peer_sockfd < 0) 
@@ -69,11 +91,29 @@ void* peer_as_server(void* param)
      socklen_t clilen;
      clilen = sizeof(peer_cli_addr);
      
+     //cout<<peer_sockfd<<endl;
      while(1)
      {
      	 psockfd = accept(peer_sockfd, (struct sockaddr *) &peer_cli_addr, &clilen);
       	 if (psockfd < 0) 
-           cout<<"Error on accept"<<endl;  
+          	cout<<"Error on accept"<<endl;  
+         
+         cout<<"HERE"<<endl;
+         char buffer[256];
+         int n=read(psockfd,buffer,255);
+     	  if (n < 0) 
+     	 	cout<<"Cannot read from socket"<<endl;
+     	  	
+     	  cout<<buffer<<endl;
+     	  
+     	  string reply;
+     	  cin>>reply;
+     	  char* r=new char[reply.size()+1];
+     	  strcpy(r,reply.c_str());
+     	  
+     	  int n1=write(psockfd,r,strlen(r));
+     	  if(n1<0)
+     	  	cout<<"Cannot write to socket"<<endl;
      }
 }
 int main(int argc, char *argv[])
@@ -139,27 +179,10 @@ int main(int argc, char *argv[])
     serv_addr.sin_port = htons(portno);
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         cout<<"Cannot connect"<<endl;
-    string command;
-    
-    pthread_t server_peer;
-    char* param=new char[port.size()+1];
-    strcpy(param, port.c_str());
-    
-    if(pthread_create(&server_peer,NULL,&peer_as_server,(void*)param)!=0)
-        	cout<<"Thread creation failed"<<endl;   
-     	pthread_detach(server_peer);
-    
-    pthread_t client_peer;
-    string p1=ip+" "+port;
-    
-    char* p2=new char[p1.size()+1];
-    strcpy(p2, p1.c_str());  
-    
-    if(pthread_create(&client_peer,NULL,&peer_as_client,(void*)p2)!=0)
-        	cout<<"Thread creation failed"<<endl;   
-     	pthread_detach(client_peer);
+    string command; 
      
-     
+    bool server_running=false;
+    
     while(1)
     {
     	getline(cin,command);
@@ -465,6 +488,11 @@ int main(int argc, char *argv[])
  	}
  	if(cmd=="upload_file")
  	{
+ 	
+ 		pthread_t server_peer;
+		char* param=new char[port.size()+1];
+		strcpy(param, port.c_str());
+		    
 		if(i==command.size())
     		{
     			cout<<"Enter file path and group id"<<endl;
@@ -504,6 +532,27 @@ int main(int argc, char *argv[])
     			cout<<buf1[i];
     			cout<<endl;
     		}
+    		
+    		if(!server_running)
+		{
+			server_running=true;
+			if(pthread_create(&server_peer,NULL,&peer_as_server,(void*)param)!=0)
+				cout<<"Thread creation failed"<<endl;   
+			pthread_detach(server_peer);
+		}
+ 	}
+ 	if(cmd=="download_file")
+ 	{
+ 		pthread_t client_peer;
+		string p1=ip+" "+port;
+		    
+		char* p2=new char[p1.size()+1];
+		strcpy(p2, p1.c_str());  
+		    
+		if(pthread_create(&client_peer,NULL,&peer_as_client,(void*)p2)!=0)
+			cout<<"Thread creation failed"<<endl;   
+		pthread_detach(client_peer);
+		    
  	}
     }	
     close(sockfd);
