@@ -173,7 +173,7 @@ void* tracker_functions(void* info)
 	     		}
      			char* msg=new char[buf1.size()+1];
 	     		strcpy(msg, buf1.c_str());  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+	     		int n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -342,9 +342,12 @@ void* tracker_functions(void* info)
 		     				}
 		     				else
 		     				{
-		     					groups[gid].erase(itr);
-		     					if(groups[gid].size()==0)
-		     					groups.erase(gid);
+		     					if(owners[gid]==uid)
+		     					{
+		     						owners.erase(gid);
+		     						groups.erase(gid);
+		     						uploaded_files.erase(gid);
+		     					}
 		     					buf="You have left group "+gid;
 		     				}
 		     			}
@@ -592,12 +595,9 @@ void* tracker_functions(void* info)
 		     						unordered_map<string,vector<string>> mp=uploaded_files[gid];
 		     						for(auto itr:mp)
 			     					{	
-			     						vector<string> v=itr.second;
-			     						cout<<itr.first<<": ";
-			     						for(int j=0;j<v.size();j++)
-			     						cout<<v[j]<<" ";
-			     						cout<<endl;
-			     						buf1+=itr.first+" ";
+			     						if(itr.first!=(*mp.begin()).first)
+			     						buf1+="\n";
+			     						buf1+=itr.first;
 			     					}
 			     					//buf1=buf1.substr(0,buf1.size()-1);
 			     				}
@@ -606,9 +606,8 @@ void* tracker_functions(void* info)
 	     			}
 	     		}
 	     		char* msg=new char[buf1.size()+1];
-		     	strcpy(msg, buf1.c_str());
-		     	cout<<msg<<endl<<buf1<<endl;
-	 		int n1 = write(newsockfd,msg,strlen(msg));
+			strcpy(msg, buf1.c_str());
+			int n1 = write(newsockfd,msg,strlen(msg));
 	    		if (n1 < 0) 
 		 		cout<<"Could not write to socket"<<endl;
      		}
@@ -661,25 +660,32 @@ void* tracker_functions(void* info)
 	     					}
 		     				else
 		     				{
-		     					string filename="";
-							for(i=filepath.size();i>=0;i--)
-							{
-								if(filepath[i]=='/')
+		     					vector<string> temp=groups[gid];
+		     					int flag=0;
+		     					for(auto itr:temp)
+		     					{
+		     						if(itr==uid)
+		     						{
+		     							flag=1;
+		     							break;
+		     						}	
+		     					}
+		     					if(!flag)
+		     					{
+		     						buf="You are not part of group "+gid;
+		     					}
+		     					else
+		     					{
+		     						string filename="";
+								for(i=filepath.size()-1;i>=0;i--)
 								{
-									break;
+									if(filepath[i]=='/')
+									{
+										break;
+									}
+									filename=filepath[i]+filename;
 								}
-								filename=filepath[i]+filename;
-							}
-							if(uploaded_files.find(gid)==uploaded_files.end())
-							{
-								vector<string> v;
-								v.push_back(uid);
-								uploaded_files[gid][filename]=v;
-								filedetails[filename]=filepath;
-							}
-							else
-							{
-								if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
+								if(uploaded_files.find(gid)==uploaded_files.end())
 								{
 									vector<string> v;
 									v.push_back(uid);
@@ -688,22 +694,32 @@ void* tracker_functions(void* info)
 								}
 								else
 								{
-									int f=0;
-									for(int j=0;j<uploaded_files[gid][filename].size();j++)
+									if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
 									{
-										if(uploaded_files[gid][filename][j]==uid)
-										{
-											f=1;
-											break;
-										}
+										vector<string> v;
+										v.push_back(uid);
+										uploaded_files[gid][filename]=v;
+										filedetails[filename]=filepath;
 									}
-									if(!f)
-										uploaded_files[gid][filename].push_back(uid);
 									else
-										buf="File "+filename+" has already been uploaded by "+uid;
+									{
+										int f=0;
+										for(int j=0;j<uploaded_files[gid][filename].size();j++)
+										{
+											if(uploaded_files[gid][filename][j]==uid)
+											{
+												f=1;
+												break;
+											}
+										}
+										if(!f)
+											uploaded_files[gid][filename].push_back(uid);
+										else
+											buf="File "+filename+" has already been uploaded by "+uid;
+									}
 								}
+								buf="Successfully uploaded file "+filename+" to group "+gid;
 							}
-							buf="Successfully uploaded file "+filename+" to group "+gid;
 						}
 					}
 				}

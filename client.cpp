@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
     			cout<<endl;
     		}
     	}
- 	if(cmd=="list_groups")
+ 	else if(cmd=="list_groups")
  	{
  		string msg="i";
     		char* buf=new char[msg.size()+1];
@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
     			cout<<endl;
     		}
  	}
- 	if(cmd=="list_files")
+ 	else if(cmd=="list_files")
  	{
  		if(i==command.size())
     		{
@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
     			cout<<endl;
     		}
  	}
- 	if(cmd=="upload_file")
+ 	else if(cmd=="upload_file")
  	{
  	
  		pthread_t server_peer;
@@ -541,7 +541,7 @@ int main(int argc, char *argv[])
 			pthread_detach(server_peer);
 		}
  	}
- 	if(cmd=="download_file")
+ 	else if(cmd=="download_file")
  	{
  		pthread_t client_peer;
 		string p1=ip+" "+port;
@@ -553,6 +553,11 @@ int main(int argc, char *argv[])
 			cout<<"Thread creation failed"<<endl;   
 		pthread_detach(client_peer);
 		    
+ 	}
+ 	else
+ 	{
+ 		cout<<"Wrong command, enter again"<<endl;
+ 		continue;
  	}
     }	
     close(sockfd);
