@@ -18,7 +18,7 @@ unordered_map<string,string> owners;
 unordered_map<string,vector<string>> groups;
 unordered_map<string,vector<string>> pending;
 unordered_map<string,vector<string>> pending_clients;
-unordered_map<string,unordered_map<string,vector<string>>> uploaded_files;
+unordered_map<string,unordered_map<string,vector<vector<string>>>> uploaded_files;
 unordered_map<string,string> filedetails;
 
 vector<int> sckfd;
@@ -592,7 +592,7 @@ void* tracker_functions(void* info)
 		     						buf1="No files uploaded in group "+gid;
 		     					else
 		     					{
-		     						unordered_map<string,vector<string>> mp=uploaded_files[gid];
+		     						unordered_map<string,vector<vector<string>>> mp=uploaded_files[gid];
 		     						for(auto itr:mp)
 			     					{	
 			     						if(itr.first!=(*mp.begin()).first)
@@ -630,6 +630,15 @@ void* tracker_functions(void* info)
 	     			break;
 	     			gid+=buf[i];
 	     		}
+	     		i+=2;
+	     		string no_of_chunks="";
+	     		for(;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			no_of_chunks+=buf[i];
+	     		}
+	     		int num=stoi(no_of_chunks);
 	     		
 	     		string buf;
 	     		string addr=client_ip+" "+client_port;
@@ -646,80 +655,87 @@ void* tracker_functions(void* info)
 	     			}
 	     			else
 	     			{
-	     				fstream fs;
-	     				fs.open(filepath);
-		     			if(fs.fail())
+	     				if(groups.find(gid)==groups.end())
+	     				{
+	     					buf="No such group present";
+	     				}
+		     			else
 		     			{
-		     				buf="No such file present";
-		     			}
-	     				else
-		     			{	
-		     				if(groups.find(gid)==groups.end())
-	     					{
-	     						buf="No such group present";
-	     					}
-		     				else
+		     				vector<string> temp=groups[gid];
+		     				int flag=0;
+		     				for(auto itr:temp)
 		     				{
-		     					vector<string> temp=groups[gid];
-		     					int flag=0;
-		     					for(auto itr:temp)
+		     					if(itr==uid)
 		     					{
-		     						if(itr==uid)
-		     						{
-		     							flag=1;
-		     							break;
-		     						}	
-		     					}
-		     					if(!flag)
-		     					{
-		     						buf="You are not part of group "+gid;
-		     					}
-		     					else
-		     					{
-		     						string filename="";
-								for(i=filepath.size()-1;i>=0;i--)
+		     						flag=1;
+		     						break;
+		     					}	
+		     				}
+		     				if(!flag)
+		     				{
+		     					buf="You are not part of group "+gid;
+		     				}
+		     				else
+		    				{
+		     					string filename="";
+							for(i=filepath.size()-1;i>=0;i--)
+							{
+								if(filepath[i]=='/')
 								{
-									if(filepath[i]=='/')
-									{
-										break;
-									}
-									filename=filepath[i]+filename;
+									break;
 								}
-								if(uploaded_files.find(gid)==uploaded_files.end())
+								filename=filepath[i]+filename;
+							}
+							if(uploaded_files.find(gid)==uploaded_files.end())
+							{
+								vector<vector<string>> v(num);
+								for(int j=0;j<num;j++)
 								{
-									vector<string> v;
-									v.push_back(uid);
+									v[i].push_back(uid);
+								}
+								uploaded_files[gid][filename]=v;
+								filedetails[filename]=filepath;
+							}
+							else
+							{
+								if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
+								{
+									vector<vector<string>> v;
+									for(int j=0;j<num;j++)
+									{
+										v[i].push_back(uid);
+									}
 									uploaded_files[gid][filename]=v;
 									filedetails[filename]=filepath;
 								}
 								else
 								{
-									if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
+									int f=0;
+									for(int j=0;j<uploaded_files[gid][filename].size();j++)
 									{
-										vector<string> v;
-										v.push_back(uid);
-										uploaded_files[gid][filename]=v;
-										filedetails[filename]=filepath;
-									}
-									else
-									{
-										int f=0;
-										for(int j=0;j<uploaded_files[gid][filename].size();j++)
+										for(int k=0;k<uploaded_files[gid][filename][j].size();k++)
 										{
-											if(uploaded_files[gid][filename][j]==uid)
+											if(uploaded_files[gid][filename][j][k]==uid)
 											{
 												f=1;
 												break;
 											}
 										}
-										if(!f)
-											uploaded_files[gid][filename].push_back(uid);
-										else
-											buf="File "+filename+" has already been uploaded by "+uid;
+										if(f)
+										break;
 									}
+									if(!f)
+									{
+										for(int j=0;j<uploaded_files[gid][filename].size();j++)
+										{
+											uploaded_files[gid][filename][j].push_back(uid);
+										}
+									}
+									else
+										buf="File "+filename+" has already been uploaded by "+uid;
 								}
-								buf="Successfully uploaded file "+filename+" to group "+gid;
 							}
+							buf="Successfully uploaded file "+filename+" to group "+gid;
 						}
 					}
 				}

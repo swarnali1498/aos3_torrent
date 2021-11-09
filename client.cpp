@@ -66,7 +66,7 @@ void* peer_as_client(void* param)
     	cout<<buf1[i];
     	cout<<endl;
     }
-    
+    return NULL;
 }
 
 void* peer_as_server(void* param)
@@ -488,7 +488,6 @@ int main(int argc, char *argv[])
  	}
  	else if(cmd=="upload_file")
  	{
- 	
  		pthread_t server_peer;
 		char* param=new char[port.size()+1];
 		strcpy(param, port.c_str());
@@ -515,7 +514,67 @@ int main(int argc, char *argv[])
     		}
     		gid=command.substr(i+1);
    	 	
-   	 	string msg="k<"+filepath+"><"+gid+">";
+   	 	fstream fs;
+	     	fs.open(filepath);
+		if(fs.fail())
+		{
+			cout<<"No such file present"<<endl;
+			continue;
+		}
+	     	
+		ifstream fSource(argv[1], ios_base::ate|ios::binary|ios::in);
+		char* chunk;
+		int p = 0;
+		int chunksize = 512;
+		int lastchunksize;
+		int c=0;
+		int filesize = fSource.tellg();
+		
+		vector<pair<string,int>> file_chunks;
+		
+		if (fSource.is_open())
+		{
+			fSource.seekg(0, ios::beg);
+
+			while (fSource)
+			{
+			    fSource.seekg(p,ios::beg);
+
+			    if (p+chunksize > filesize)
+			    {
+			    	lastchunksize = filesize-p;
+				chunk = new char[lastchunksize];
+				fSource.read(chunk, lastchunksize);
+			    }
+			    else
+			    {
+				chunk = new char[chunksize];
+				fSource.read(chunk, chunksize);
+			    }
+			    c++;
+			    file_chunks.push_back({string(chunk),chunksize});
+			    cout<<chunksize<<endl;
+		       }
+	        }
+
+	     	
+	     	/*char * buffer;
+		long size;
+
+		ifstream file1 (filepath,ifstream::binary);
+		
+		// get size of file
+		
+		// allocate memory for file content
+		buffer = new char [size];
+
+		// read content of infile
+		file1.read (buffer,size);
+
+		file1.close();*/
+
+
+   	 	string msg="k<"+filepath+"><"+gid+"><"+c+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
     		int n = write(sockfd,buf,strlen(buf));
@@ -548,11 +607,77 @@ int main(int argc, char *argv[])
 		    
 		char* p2=new char[p1.size()+1];
 		strcpy(p2, p1.c_str());  
-		    
+
+		if(i==command.size())
+    		{
+    			cout<<"Enter group id, file name and destination path"<<endl;
+    			continue;
+    		}
+    		command=command.substr(i+1);
+    		string gid="",filename="",dest_path;
+    		for(i=0;i<command.size();i++)
+    		{
+    			if(command[i]==' ')
+    			{
+    				break;
+    			}
+    			gid+=command[i];
+    		}	
+    		if(i==command.size())
+    		{
+    			cout<<"Enter filename and destination path"<<endl;
+    			continue;
+    		}
+    		for(i++;i<command.size();i++)
+    		{
+    			if(command[i]==' ')
+    			{
+    				break;
+    			}
+    			filename+=command[i];
+    		}
+    		if(i==command.size())
+    		{
+    			cout<<"Enter destination path"<<endl;
+    			continue;
+    		}
+    		dest_path=command.substr(i+1);
+   	 		
+		string msg="l<"+gid+"><"+filename+">";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+    		int n = write(sockfd,buf,strlen(buf));
+    		if (n < 0) 
+         		cout<<"Could not write to socket"<<endl;
+		
+		vector<string> users;
+		string temp="";
+		char buf1[256];
+		int n1=read(sockfd,buf1,255);
+    		if (n1<0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+    		{
+    			for(int i=0;i<n1;i++)
+    			{
+    				if(buf1[i]==' ')
+    				{
+    					users.push_back(temp);
+    					temp="";
+				}
+    				else
+    				{
+    					temp+=buf1[i];
+    				}
+    			}
+    		}
+		
+		
+		
 		if(pthread_create(&client_peer,NULL,&peer_as_client,(void*)p2)!=0)
 			cout<<"Thread creation failed"<<endl;   
 		pthread_detach(client_peer);
-		    
+				    
  	}
  	else
  	{
