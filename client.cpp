@@ -11,18 +11,16 @@
 #include<bits/stdc++.h>
 using namespace std;
 	
-unordered_map<string,string> client_map;
 long long int chunksize=5;
-unordered_map<string,string> fileaddr;
 
 void* peer_as_client(void* param)
 {
-    cout<<"client"<<endl;
+  //  cout<<"client"<<endl;
     char* p = (char*)param;
     //cout<<p<<endl;
     struct sockaddr_in serv_addr,cli_addr;
     string ip_port = string(p);
-    string ip="",port="",filename="",chunk;
+    string ip="",port="",filename="",fileaddr="",destpath="",chunk;
     struct hostent *server;
     long long int i,j;
     for(i=0;i<ip_port.size();i++)
@@ -43,9 +41,21 @@ void* peer_as_client(void* param)
     		break;
     	filename+=ip_port[i];
     }
+    for(i++;i<ip_port.size();i++)
+    {
+    	if(ip_port[i]==' ')
+    		break;
+    	fileaddr+=ip_port[i];
+    }
+    for(i++;i<ip_port.size();i++)
+    {
+    	if(ip_port[i]==' ')
+    		break;
+    	destpath+=ip_port[i];
+    }
     chunk=ip_port.substr(i+1);
     long long int chunknum=stoll(chunk);
-    cout<<ip<<" "<<port<<" "<<filename<<" "<<chunknum<<endl;
+    //cout<<ip<<" "<<port<<" "<<filename<<" "<<fileaddr<<" "<<chunknum<<endl;
     
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
@@ -66,16 +76,16 @@ void* peer_as_client(void* param)
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
      	   cout<<"Cannot connect"<<endl;
     
-    cout<<"Reached here"<<endl;
     
-    string msg=filename+" "+to_string(chunknum);
+    string msg=filename+" "+fileaddr+" "+to_string(chunknum);
     char* buf=new char[msg.size()+1];
     strcpy(buf, msg.c_str());
     
     int n = write(sockfd,buf,strlen(buf));
     if (n < 0) 
     	cout<<"Could not write to socket"<<endl;
-		
+    cout<<buf<<endl;
+
     char buf1[256];
     long long int n1=read(sockfd,buf1,255);
     if (n1<0) 
@@ -86,16 +96,33 @@ void* peer_as_client(void* param)
     {
     	chunk_val+=buf1[i];
     }
-    char* r=new char[chunk_val.size()+1];
-    strcpy(r, chunk_val.c_str());
-  
-    param=(void*)r;
-    return NULL;
+    cout<<chunknum<<" "<<chunk_val<<endl;
+    
+    string finalpath=destpath+"/"+filename;
+    char* fpath=new char[finalpath.size()+1];
+    strcpy(fpath, finalpath.c_str());
+    
+    ofstream opfile;
+    opfile.open(fpath,ios::out| ios::ate);
+    long long int start_point=chunknum*chunksize;
+    opfile.seekp(start_point,ios::beg);
+    cout<<start_point<<endl;
+    i=0;
+    if(opfile.is_open())
+    {
+    	cout<<"Output file opened"<<endl;
+    	while(n1--)
+    	{
+    		opfile.put(chunk_val[i++]);
+    		cout<<chunk_val[i-1];
+    	}
+    }
+    cout<<endl;
+    pthread_exit(NULL);
 }
 
 void* peer_as_server(void* param)
 {
-    // cout<<"server"<<endl;
      char* port=(char*)param;
      int peer_sockfd = socket(AF_INET, SOCK_STREAM, 0);
      if (peer_sockfd < 0) 
@@ -115,45 +142,50 @@ void* peer_as_server(void* param)
      socklen_t clilen;
      clilen = sizeof(peer_cli_addr);
      
-     //cout<<peer_sockfd<<endl;
      while(1)
      {
      	 psockfd = accept(peer_sockfd, (struct sockaddr *) &peer_cli_addr, &clilen);
       	 if (psockfd < 0) 
           	cout<<"Error on accept"<<endl;  
          
-         cout<<"HERE"<<endl;
          char buffer[256];
          int n=read(psockfd,buffer,255);
      	  if (n < 0) 
      	 	cout<<"Cannot read from socket"<<endl;
      	  	
-     	 cout<<buffer<<endl;
      	 
      	 long long int i,j;
      	 string s=string(buffer);
-     	 string filename="",chunk;
+     	 string filename="",fileaddr="",chunk;
      	 for(i=0;i<s.size();i++)
      	 {
      	 	if(s[i]==' ')
      	 	break;
      	 	filename+=s[i];
      	 }
+     	 for(i++;i<s.size();i++)
+     	 {
+     	 	if(s[i]==' ')
+     	 	break;
+     	 	fileaddr+=s[i];
+     	 }
      	 chunk=s.substr(i+1);
      	 long long int chunknum=stoll(chunk);
-     	 string fp=fileaddr[filename];
-     	 char* filepath=new char[fp.size()+1];
-     	 strcpy(filepath, fp.c_str());
+     	 
+     	 
+     	 char* filepath=new char[fileaddr.size()+1];
+     	 strcpy(filepath, fileaddr.c_str());
      	 long long int start_pos=chunknum*chunksize;
      	 
+     	 cout<<"Starting poition="<<start_pos<<endl;
      	 
      	 ifstream fSource;
-	 fSource.open(filepath, ios::binary|ios::in);
+	 fSource.open(filepath, ios::in);
 	 int p = 0;
 	 long long int lastchunksize;
 	 chunk="";
 	 fSource.seekg(0, ios::end);
-	 int filesize = fSource.tellg();
+	 long long int filesize = fSource.tellg();
 	 	
 	 if (fSource.is_open())
 	 {
@@ -181,8 +213,6 @@ void* peer_as_server(void* param)
 		}
 		fSource.close();
 	 }
-     	 
-     	 chunk=chunknum+"|"+chunk;
      	 
      	 char* r=new char[chunk.size()+1];
      	 strcpy(r,chunk.c_str());
@@ -619,10 +649,9 @@ int main(int argc, char *argv[])
 			filename=filepath[i]+filename;
 		}
 	     	
-	     	fileaddr[filename]=filepath;
 	     	
 		ifstream fSource;
-		fSource.open(filepath, ios::binary|ios::in);
+		fSource.open(filepath, ios::in);
 		int p = 0;
 		long long int lastchunksize;
 		int c=1;
@@ -817,14 +846,37 @@ int main(int argc, char *argv[])
 			cout<<endl;
 		}
 		
-		map<long long int,pair<long long int,vector<string>>> mp;
+		vector<pair<long long int,pair<long long int,vector<string>>>> vect;
 		for(i=0;i<v.size();i++)
 		{
 			long long int len_users=v[i].size();
-			mp[len_users]={i,v[i]};
+			vect.push_back({len_users,{i,v[i]}});
 		}
-		for(auto itr:mp)
+		sort(vect.begin(),vect.end());
+		cout<<"Vector size="<<vect.size()<<endl;
+		string msg4="o<"+filename+">";
+    		char* buf4=new char[msg4.size()+1];
+    		strcpy(buf4, msg4.c_str());  
+    		int n4 = write(sockfd,buf4,strlen(buf4));
+    		if (n4 < 0) 
+         		cout<<"Could not write to socket"<<endl;
+		
+		string fileaddr="";
+    		char buf5[256];
+		int n5=read(sockfd,buf5,255);
+    		if (n5 < 0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+    		{
+    			for(i=0;i<n5;i++)
+    			{
+    				fileaddr+=buf5[i];
+    			}
+    		}
+    				
+		for(auto itr:vect)
 		{
+			cout<<"No of users for chunk "<<itr.second.first<<" is "<<itr.first<<endl;
 			if(itr.first==0)
 				continue;
 			pair<int,vector<string>> p=itr.second;
@@ -858,8 +910,8 @@ int main(int argc, char *argv[])
     					port1+=buf1[i];
     				}
 			}	
-			cout<<"Received from tracker server ip="<<ip1<<" and port="<<port1<<endl;
-			string info_to_be_sent=ip1+" "+port1+" "+filename+" "+to_string(p.first);
+			//cout<<"Received from tracker server ip="<<ip1<<" and port="<<port1<<endl;
+			string info_to_be_sent=ip1+" "+port1+" "+filename+" "+fileaddr+" "+dest_path+" "+to_string(p.first);
 			char* p2=new char[info_to_be_sent.size()+1];
 			strcpy(p2, info_to_be_sent.c_str());	
 			//cout<<p2<<endl;
@@ -867,22 +919,11 @@ int main(int argc, char *argv[])
 			pthread_t client_peer;
 			if(pthread_create(&client_peer,NULL,&peer_as_client,(void*)p2)!=0)
 				cout<<"Thread creation failed"<<endl;   
-			pthread_detach(client_peer);
-			
-			string buf2=string((char*)p2),chunknum="",chunk="";
- 		   	for(i=0;i<n1;i++)
- 		   	{
- 		   		if(buf2[i]=='|')
- 		   			break;
- 		   		chunknum+=buf2[i];
- 		   	}
- 		   	long long int cnum=stoll(chunknum);
- 		   	for(;i<n1;i++)
- 		   	{
- 		   		chunk+=buf2[i];
- 		   	}
- 		   	cout<<cnum<<" "<<chunk<<endl;
+			pthread_join(client_peer,NULL);
+			//cout<<"returned from thread peer_client"<<endl;
+			//cout<<itr.first<<" "<<vect.size()<<endl;
  		   }
+ 		   cout<<"HELLO WORLD"<<endl;
  	}
  	else
  	{

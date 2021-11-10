@@ -852,7 +852,7 @@ void* tracker_functions(void* info)
      		{
      			cout<<buf<<endl;
      			string ip2="";
-	     		int i,j;
+	     		long long int i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -878,6 +878,23 @@ void* tracker_functions(void* info)
 	     		string addr2=ip2+" "+port2;
 	     		client_addr[uid2]=addr2;
 	     		//cout<<uid2<<" "<<addr2<<endl;
+     		}
+     		if(ch=='o')
+     		{
+     			long long int i,j;
+     			string filename="";
+	     		for(i=0;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			filename+=buf[i];
+	     		}
+	     		string fileaddr=filedetails[filename];
+	     		char* fp=new char[fileaddr.size()+1];
+	     		strcpy(fp, fileaddr.c_str());
+	     		int n1 = write(newsockfd,fp,strlen(fp));
+    			if (n1 < 0) 
+         			cout<<"Could not write to socket"<<endl;
      		}
     	}
 }
