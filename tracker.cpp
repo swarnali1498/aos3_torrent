@@ -80,17 +80,17 @@ void* tracker_functions(void* info)
 	     		string addr=client_ip+" "+client_port;
 	     		if(client_map.find(addr)!=client_map.end())
 	     		{
-	     			buf="You have already registered. Please login to continue";
+	     			buf="wYou have already registered. Please login to continue";
 	     		}
 	     		else if(client_list.find(userid)!=client_list.end())
 	     		{
-	     			buf="Please provide a different user id";	
+	     			buf="wPlease provide a different user id";	
 	     		}
 	     		else
 	     		{
 	     			if(client_list.find(userid)!=client_list.end())
 	     			{
-	     				buf="Use a different user id";
+	     				buf="wUse a different user id";
 	     			}
 	     			else
 	     			{
@@ -98,7 +98,7 @@ void* tracker_functions(void* info)
 	     				string addr=client_ip+" "+client_port;
 	     				client_map[addr]=userid;
 	     				logged_in[userid]=false;
-	     				buf="Registration successful";
+	     				buf="cRegistration successful";
 	     			}
 	     		}
 	     		char* msg=new char[buf.size()+1];

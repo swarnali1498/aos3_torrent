@@ -11,22 +11,41 @@
 #include<bits/stdc++.h>
 using namespace std;
 	
+unordered_map<string,string> client_map;
+long long int chunksize=5;
+unordered_map<string,string> fileaddr;
+
 void* peer_as_client(void* param)
 {
     cout<<"client"<<endl;
     char* p = (char*)param;
+    //cout<<p<<endl;
     struct sockaddr_in serv_addr,cli_addr;
     string ip_port = string(p);
-    string ip="",port;
+    string ip="",port="",filename="",chunk;
     struct hostent *server;
-    int i;
+    long long int i,j;
     for(i=0;i<ip_port.size();i++)
     {
     	if(ip_port[i]==' ')
     		break;
     	ip+=ip_port[i];
     }
-    port=ip_port.substr(i+1);
+    for(i++;i<ip_port.size();i++)
+    {
+    	if(ip_port[i]==' ')
+    		break;
+    	port+=ip_port[i];
+    }
+    for(i++;i<ip_port.size();i++)
+    {
+    	if(ip_port[i]==' ')
+    		break;
+    	filename+=ip_port[i];
+    }
+    chunk=ip_port.substr(i+1);
+    long long int chunknum=stoll(chunk);
+    cout<<ip<<" "<<port<<" "<<filename<<" "<<chunknum<<endl;
     
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
@@ -47,8 +66,9 @@ void* peer_as_client(void* param)
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
      	   cout<<"Cannot connect"<<endl;
     
-    string msg;
-    cin>>msg;
+    cout<<"Reached here"<<endl;
+    
+    string msg=filename+" "+to_string(chunknum);
     char* buf=new char[msg.size()+1];
     strcpy(buf, msg.c_str());
     
@@ -57,15 +77,19 @@ void* peer_as_client(void* param)
     	cout<<"Could not write to socket"<<endl;
 		
     char buf1[256];
-    int n1=read(sockfd,buf1,255);
+    long long int n1=read(sockfd,buf1,255);
     if (n1<0) 
     	cout<<"Error reading from socket"<<endl;
-    else
+ 
+    string chunk_val="";
+    for(i=0;i<n1;i++)
     {
-    	for(int i=0;i<n1;i++)
-    	cout<<buf1[i];
-    	cout<<endl;
+    	chunk_val+=buf1[i];
     }
+    char* r=new char[chunk_val.size()+1];
+    strcpy(r, chunk_val.c_str());
+  
+    param=(void*)r;
     return NULL;
 }
 
@@ -104,16 +128,68 @@ void* peer_as_server(void* param)
      	  if (n < 0) 
      	 	cout<<"Cannot read from socket"<<endl;
      	  	
-     	  cout<<buffer<<endl;
+     	 cout<<buffer<<endl;
+     	 
+     	 long long int i,j;
+     	 string s=string(buffer);
+     	 string filename="",chunk;
+     	 for(i=0;i<s.size();i++)
+     	 {
+     	 	if(s[i]==' ')
+     	 	break;
+     	 	filename+=s[i];
+     	 }
+     	 chunk=s.substr(i+1);
+     	 long long int chunknum=stoll(chunk);
+     	 string fp=fileaddr[filename];
+     	 char* filepath=new char[fp.size()+1];
+     	 strcpy(filepath, fp.c_str());
+     	 long long int start_pos=chunknum*chunksize;
+     	 
+     	 
+     	 ifstream fSource;
+	 fSource.open(filepath, ios::binary|ios::in);
+	 int p = 0;
+	 long long int lastchunksize;
+	 chunk="";
+	 fSource.seekg(0, ios::end);
+	 int filesize = fSource.tellg();
+	 	
+	 if (fSource.is_open())
+	 {
+		fSource.seekg(start_pos, ios::beg);
+	        if (start_pos+chunksize >= filesize-1)
+	        {
+			lastchunksize = filesize-1-start_pos;
+			char ch; 
+			long long int len=lastchunksize;
+			while(len--)
+			{
+				fSource.get(ch);
+				chunk+=ch;
+			}
+		}
+		else
+		{
+			char ch; 
+			long long int len=chunksize;
+			while(len--)
+			{
+				fSource.get(ch);
+				chunk+=ch;
+			}
+		}
+		fSource.close();
+	 }
+     	 
+     	 chunk=chunknum+"|"+chunk;
+     	 
+     	 char* r=new char[chunk.size()+1];
+     	 strcpy(r,chunk.c_str());
      	  
-     	  string reply;
-     	  cin>>reply;
-     	  char* r=new char[reply.size()+1];
-     	  strcpy(r,reply.c_str());
-     	  
-     	  int n1=write(psockfd,r,strlen(r));
-     	  if(n1<0)
-     	  	cout<<"Cannot write to socket"<<endl;
+     	 int n1=write(psockfd,r,strlen(r));
+     	 if(n1<0)
+     	 	cout<<"Cannot write to socket"<<endl;
      }
 }
 int main(int argc, char *argv[])
@@ -242,7 +318,14 @@ int main(int argc, char *argv[])
          		cout<<"Error reading from socket"<<endl;
          	else
     		{
-    			for(int i=0;i<n1;i++)
+    			cout<<buf1<<endl;
+    			if(buf1[0]=='c')
+    			{
+    				string addr1=ip+" "+port;
+    				cout<<userid<<" "<<addr1<<endl;
+    				client_map[userid]=addr1;
+    			}
+    			for(int i=1;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -522,11 +605,22 @@ int main(int argc, char *argv[])
 			continue;
 		}
 	     	
+	     	string filename="";
+		for(i=filepath.size()-1;i>=0;i--)
+		{
+			if(filepath[i]=='/')
+			{
+				break;
+			}
+			filename=filepath[i]+filename;
+		}
+	     	
+	     	fileaddr[filename]=filepath;
+	     	
 		ifstream fSource;
 		fSource.open(filepath, ios::binary|ios::in);
 		int p = 0;
-		int chunksize = 512*1024;
-		int lastchunksize;
+		long long int lastchunksize;
 		int c=1;
 		fSource.seekg(0, ios::end);
 		int filesize = fSource.tellg();
@@ -707,21 +801,53 @@ int main(int argc, char *argv[])
     			if(temp.size())
     			v.push_back(temp);
     		}
+		long long int i,j;
 		
-		for(long long int i=0;i<v.size();i++)
+		for(i=0;i<v.size();i++)
 		{
 			cout<<i<<": ";
-			for(long long int j=0;j<v[i].size();j++)
+			for(j=0;j<v[i].size();j++)
 			{
 				cout<<v[i][j]<<" ";
 			}
 			cout<<endl;
 		}
-		/*
-		if(pthread_create(&client_peer,NULL,&peer_as_client,(void*)p2)!=0)
-			cout<<"Thread creation failed"<<endl;   
-		pthread_detach(client_peer);*/
-				    
+		
+		map<long long int,pair<long long int,vector<string>>> mp;
+		for(i=0;i<v.size();i++)
+		{
+			long long int len_users=v[i].size();
+			mp[len_users]={i,v[i]};
+		}
+		
+		for(auto itr:mp)
+		{
+			if(itr.first==0)
+				continue;
+			pair<int,vector<string>> p=itr.second;
+			string fetch_from_uid=p.second[0];
+			string addr2=client_map[fetch_from_uid];
+			string info_to_be_sent=addr2+" "+filename+" "+to_string(p.first);
+			char* p2=new char[info_to_be_sent.size()+1];
+			strcpy(p2, info_to_be_sent.c_str());	
+			//cout<<p2<<endl;
+			
+			pthread_t client_peer;
+			if(pthread_create(&client_peer,NULL,&peer_as_client,(void*)p2)!=0)
+				cout<<"Thread creation failed"<<endl;   
+			pthread_detach(client_peer);
+			
+			string buf1=string((char*)p2),chunknum="";
+ 		   	for(i=0;i<n1;i++)
+ 		   	{
+ 		   		if(buf1[i]=='|')
+ 		   			break;
+ 		   		chunknum+=buf1[i];
+ 		   	}
+ 		   	long long int cnum=stoll(chunknum);
+ 		   	string chunk=buf1.substr(i+1);
+ 		   	cout<<chunknum<<" "<<chunk<<endl;
+ 		   }
  	}
  	else
  	{
