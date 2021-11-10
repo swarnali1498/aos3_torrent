@@ -522,12 +522,13 @@ int main(int argc, char *argv[])
 			continue;
 		}
 	     	
-		ifstream fSource(argv[1], ios_base::ate|ios::binary|ios::in);
-		char* chunk;
+		ifstream fSource;
+		fSource.open(filepath, ios::binary|ios::in);
 		int p = 0;
-		int chunksize = 512;
+		int chunksize = 512*1024;
 		int lastchunksize;
-		int c=0;
+		int c=1;
+		fSource.seekg(0, ios::end);
 		int filesize = fSource.tellg();
 		
 		vector<pair<string,int>> file_chunks;
@@ -535,48 +536,52 @@ int main(int argc, char *argv[])
 		if (fSource.is_open())
 		{
 			fSource.seekg(0, ios::beg);
-
 			while (fSource)
 			{
 			    fSource.seekg(p,ios::beg);
-
-			    if (p+chunksize > filesize)
+			    if (p+chunksize >= filesize-1)
 			    {
-			    	lastchunksize = filesize-p;
-				chunk = new char[lastchunksize];
-				fSource.read(chunk, lastchunksize);
+			    	lastchunksize = filesize-1-p;
+				char ch; 
+				string chunk="";
+				long long int len=lastchunksize;
+				while(len--)
+				{
+					fSource.get(ch);
+					chunk+=ch;
+				}
+			   	file_chunks.push_back({chunk,lastchunksize});
 			    }
 			    else
 			    {
-				chunk = new char[chunksize];
-				fSource.read(chunk, chunksize);
+				char ch; 
+				string chunk="";
+				long long int len=chunksize;
+				while(len--)
+				{
+					fSource.get(ch);
+					chunk+=ch;
+				}
+				file_chunks.push_back({chunk,chunksize});
 			    }
+			    p+=chunksize;
+			    if(p>=filesize-1)
+			    	break;
 			    c++;
-			    file_chunks.push_back({string(chunk),chunksize});
-			    cout<<chunksize<<endl;
+			    //cout<<chunksize<<endl;
 		       }
+		       fSource.close();
+		       /*for(auto itr:file_chunks)
+		       {
+		       	cout<<itr.first<<" "<<itr.second<<endl;
+		       }*/
 	        }
 
-	     	
-	     	/*char * buffer;
-		long size;
-
-		ifstream file1 (filepath,ifstream::binary);
-		
-		// get size of file
-		
-		// allocate memory for file content
-		buffer = new char [size];
-
-		// read content of infile
-		file1.read (buffer,size);
-
-		file1.close();*/
-
-
-   	 	string msg="k<"+filepath+"><"+gid+"><"+c+">";
+	
+   	 	string msg="k<"+filepath+"><"+gid+"><"+to_string(c)+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
+    		//cout<<buf<<endl;
     		int n = write(sockfd,buf,strlen(buf));
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
@@ -591,7 +596,6 @@ int main(int argc, char *argv[])
     			cout<<buf1[i];
     			cout<<endl;
     		}
-    		
     		if(!server_running)
 		{
 			server_running=true;
@@ -650,33 +654,73 @@ int main(int argc, char *argv[])
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
 		
-		vector<string> users;
-		string temp="";
+		vector<vector<string>> v;
+		vector<string> temp;
 		char buf1[256];
+		int num=0;
 		int n1=read(sockfd,buf1,255);
     		if (n1<0) 
          		cout<<"Error reading from socket"<<endl;
          	else
     		{
+    			/*for(int i=0;i<n1;i++)
+    			{
+    				cout<<buf1[i]<<endl;
+    			}*/
+    			string chunk="",uid="";
+    			int c=0,u=0;
     			for(int i=0;i<n1;i++)
     			{
-    				if(buf1[i]==' ')
+    				//cout<<i<<" "<<buf1[i]<<" "<<temp.size()<<endl;
+    				if(buf1[i]=='$')
     				{
-    					users.push_back(temp);
-    					temp="";
+    					c=1;
+    					u=0;
+    					if(uid!="")
+    					{
+    						temp.push_back(uid);
+    						v.push_back(temp);
+    					}
+    					uid="";
+    					chunk="";
+    					temp.clear();
 				}
-    				else
+    				else if(buf1[i]=='|')
     				{
-    					temp+=buf1[i];
+    					u=1;
+    					c=0;
+    					if(uid!="")
+    					temp.push_back(uid);
+    					uid="";
+    				}
+    				else if(c==1)
+    				{
+    					chunk+=buf1[i];
+    				}
+    				else if(u==1)
+    				{
+    					uid+=buf1[i];
     				}
     			}
+    			if(uid!="")
+    			temp.push_back(uid);
+    			if(temp.size())
+    			v.push_back(temp);
     		}
 		
-		
-		
+		for(long long int i=0;i<v.size();i++)
+		{
+			cout<<i<<": ";
+			for(long long int j=0;j<v[i].size();j++)
+			{
+				cout<<v[i][j]<<" ";
+			}
+			cout<<endl;
+		}
+		/*
 		if(pthread_create(&client_peer,NULL,&peer_as_client,(void*)p2)!=0)
 			cout<<"Thread creation failed"<<endl;   
-		pthread_detach(client_peer);
+		pthread_detach(client_peer);*/
 				    
  	}
  	else

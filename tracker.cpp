@@ -638,7 +638,141 @@ void* tracker_functions(void* info)
 	     			break;
 	     			no_of_chunks+=buf[i];
 	     		}
-	     		int num=stoi(no_of_chunks);
+	     		long long int num=stoll(no_of_chunks);
+	     		string buf;
+	     		string addr=client_ip+" "+client_port;
+     			if(client_map.find(addr)==client_map.end())
+     			{
+     				buf="Please register first";
+     			}
+     			else
+     			{
+     				//cout<<1<<endl;
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{
+	     				//cout<<2<<endl;
+	     				if(groups.find(gid)==groups.end())
+	     				{
+	     					buf="No such group present";
+	     				}
+		     			else
+		     			{
+		     				//cout<<3<<endl;
+		     				vector<string> temp=groups[gid];
+		     				int flag=0;
+		     				for(auto itr:temp)
+		     				{
+		     					if(itr==uid)
+		     					{
+		     						flag=1;
+		     						break;
+		     					}	
+		     				}
+		     				if(!flag)
+		     				{
+		     					buf="You are not part of group "+gid;
+		     				}
+		     				else
+		    				{
+		    					//cout<<4<<endl;
+		    					string filename="";
+							for(i=filepath.size()-1;i>=0;i--)
+							{
+								if(filepath[i]=='/')
+								{
+									break;
+								}
+								filename=filepath[i]+filename;
+							}
+							if(uploaded_files.find(gid)==uploaded_files.end())
+							{
+								unordered_map<string,vector<vector<string>>> mp;
+								vector<vector<string>> v(num);
+								for(long long int j=0;j<num;j++)
+								{
+									v[j].push_back(uid);
+								}
+								mp[filename]=v;
+								uploaded_files[gid]=mp;
+								filedetails[filename]=filepath;
+							}
+							else
+							{
+								//cout<<5<<endl;
+								if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
+								{
+									vector<vector<string>> v(num);
+									for(long long int j=0;j<num;j++)
+									{
+										v[j].push_back(uid);
+									}
+									uploaded_files[gid][filename]=v;
+									filedetails[filename]=filepath;
+								}
+								else
+								{
+									//cout<<6<<endl;
+									int f=0;
+									for(long long int j=0;j<uploaded_files[gid][filename].size();j++)
+									{
+										for(long long int k=0;k<uploaded_files[gid][filename][j].size();k++)
+										{
+											if(uploaded_files[gid][filename][j][k]==uid)
+											{
+												f=1;
+												break;
+											}
+										}
+										if(f)
+										break;
+									}
+									if(!f)
+									{
+										//cout<<7<<endl;
+										for(long long int j=0;j<uploaded_files[gid][filename].size();j++)
+										{
+											uploaded_files[gid][filename][j].push_back(uid);
+										}
+									}
+									else
+										buf="File "+filename+" has already been uploaded by "+uid;
+								}
+							}
+							buf="Successfully uploaded file "+filename+" to group "+gid;
+						}
+					}
+				}
+			}
+			char* msg=new char[buf.size()+1];
+	     		strcpy(msg, buf.c_str());  
+ 			int n1 = write(newsockfd,msg,strlen(msg));
+    			if (n1 < 0) 
+         			cout<<"Could not write to socket"<<endl;
+     		}
+     		// download file
+     		if(ch=='l')
+     		{
+     			string gid="";
+	     		int i,j;
+	     		for(i=0;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			gid+=buf[i];
+	     		}
+	     		i+=2;
+	     		string filename="";
+	     		for(;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			filename+=buf[i];
+	     		}
 	     		
 	     		string buf;
 	     		string addr=client_ip+" "+client_port;
@@ -661,87 +795,35 @@ void* tracker_functions(void* info)
 	     				}
 		     			else
 		     			{
-		     				vector<string> temp=groups[gid];
-		     				int flag=0;
-		     				for(auto itr:temp)
+		     				if(uploaded_files.find(gid)==uploaded_files.end())
 		     				{
-		     					if(itr==uid)
-		     					{
-		     						flag=1;
-		     						break;
-		     					}	
-		     				}
-		     				if(!flag)
-		     				{
-		     					buf="You are not part of group "+gid;
+		     					buf="No files uploaded in gid "+gid;
 		     				}
 		     				else
-		    				{
-		     					string filename="";
-							for(i=filepath.size()-1;i>=0;i--)
-							{
-								if(filepath[i]=='/')
-								{
-									break;
-								}
-								filename=filepath[i]+filename;
-							}
-							if(uploaded_files.find(gid)==uploaded_files.end())
-							{
-								vector<vector<string>> v(num);
-								for(int j=0;j<num;j++)
-								{
-									v[i].push_back(uid);
-								}
-								uploaded_files[gid][filename]=v;
-								filedetails[filename]=filepath;
-							}
-							else
-							{
-								if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
-								{
-									vector<vector<string>> v;
-									for(int j=0;j<num;j++)
-									{
-										v[i].push_back(uid);
-									}
-									uploaded_files[gid][filename]=v;
-									filedetails[filename]=filepath;
-								}
-								else
-								{
-									int f=0;
-									for(int j=0;j<uploaded_files[gid][filename].size();j++)
-									{
-										for(int k=0;k<uploaded_files[gid][filename][j].size();k++)
-										{
-											if(uploaded_files[gid][filename][j][k]==uid)
-											{
-												f=1;
-												break;
-											}
-										}
-										if(f)
-										break;
-									}
-									if(!f)
-									{
-										for(int j=0;j<uploaded_files[gid][filename].size();j++)
-										{
-											uploaded_files[gid][filename][j].push_back(uid);
-										}
-									}
-									else
-										buf="File "+filename+" has already been uploaded by "+uid;
-								}
-							}
-							buf="Successfully uploaded file "+filename+" to group "+gid;
-						}
-					}
-				}
-			}
-			char* msg=new char[buf.size()+1];
-	     		strcpy(msg, buf.c_str());  
+		     				{
+		     					if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
+		     					{
+		     						buf="File "+filename+" not present in gid "+gid;
+		     					}
+		     					else
+		     					{
+		     						vector<vector<string>> v=uploaded_files[gid][filename];
+		     						for(int j=0;j<v.size();j++)
+		     						{
+		     							buf+="$"+to_string(j);
+		     							for(int k=0;k<v[j].size();k++)
+		     							{
+		     								buf+="|"+v[j][k];
+		     							}
+		     						}
+		     					}
+		     				}
+		     			}
+		     		}
+		     	}
+		     	char* msg=new char[buf.size()+1];
+	     		strcpy(msg, buf.c_str());
+	     		cout<<msg<<endl;  
  			int n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
