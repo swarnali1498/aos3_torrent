@@ -20,6 +20,7 @@ unordered_map<string,vector<string>> pending;
 unordered_map<string,vector<string>> pending_clients;
 unordered_map<string,unordered_map<string,vector<vector<string>>>> uploaded_files;
 unordered_map<string,string> filedetails;
+unordered_map<string,string> client_addr;
 
 vector<int> sckfd;
 vector<pthread_t> tid(20);
@@ -47,6 +48,7 @@ void* tracker_functions(void* info)
 		int n=read(newsockfd,buffer,255);
      		if (n < 0) 
      			cout<<"Cannot read from socket"<<endl;
+     		//cout<<"RECEIVED: "<<buffer<<endl;
      		string buf=string(buffer);
      		char ch=buf[0];
      		if(buf.size()>2)
@@ -827,6 +829,55 @@ void* tracker_functions(void* info)
  			int n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
+     		}
+     		if(ch=='m')
+     		{
+     			string uid="",addr;
+	     		int i,j;
+	     		for(i=0;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			uid+=buf[i];
+	     		}
+	     		addr=client_addr[uid];
+	     		char* msg=new char[addr.size()+1];
+	     		strcpy(msg, addr.c_str());
+	     		cout<<"msg is "<<msg<<endl;  
+ 			int n1 = write(newsockfd,msg,strlen(msg));
+    			if (n1 < 0) 
+         			cout<<"Could not write to socket"<<endl;
+     		}
+     		if(ch=='n')
+     		{
+     			cout<<buf<<endl;
+     			string ip2="";
+	     		int i,j;
+	     		for(i=0;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			ip2+=buf[i];
+	     		}
+	     		i+=2;
+	     		string port2="";
+	     		for(;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			port2+=buf[i];
+	     		}
+	     		i+=2;
+	     		string uid2="";
+	     		for(;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			uid2+=buf[i];
+	     		}
+	     		string addr2=ip2+" "+port2;
+	     		client_addr[uid2]=addr2;
+	     		//cout<<uid2<<" "<<addr2<<endl;
      		}
     	}
 }

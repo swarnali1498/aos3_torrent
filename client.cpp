@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         cout<<"Cannot connect"<<endl;
     string command; 
-     
+    
     bool server_running=false;
     
     while(1)
@@ -321,10 +321,14 @@ int main(int argc, char *argv[])
     			cout<<buf1<<endl;
     			if(buf1[0]=='c')
     			{
-    				string addr1=ip+" "+port;
-    				cout<<userid<<" "<<addr1<<endl;
-    				client_map[userid]=addr1;
-    			}
+    				string msg3="n<"+ip+"><"+port+"><"+userid+">";
+   			 	char* buf3=new char[msg3.size()+1];
+			    	strcpy(buf3, msg3.c_str());  
+			    	cout<<buf3<<endl;
+			    	int n = write(sockfd,buf3,strlen(buf3));
+			    	if (n < 0) 
+			    		cout<<"Could not write to socket"<<endl; 
+			}
     			for(int i=1;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
@@ -819,15 +823,43 @@ int main(int argc, char *argv[])
 			long long int len_users=v[i].size();
 			mp[len_users]={i,v[i]};
 		}
-		
 		for(auto itr:mp)
 		{
 			if(itr.first==0)
 				continue;
 			pair<int,vector<string>> p=itr.second;
 			string fetch_from_uid=p.second[0];
-			string addr2=client_map[fetch_from_uid];
-			string info_to_be_sent=addr2+" "+filename+" "+to_string(p.first);
+			
+			string msg="m<"+fetch_from_uid+">";
+    			char* buf=new char[msg.size()+1];
+    			strcpy(buf, msg.c_str());  
+    			int n = write(sockfd,buf,strlen(buf));
+    			if (n < 0) 
+         			cout<<"Could not write to socket"<<endl;
+			
+			string ip1="",port1="";
+    			char buf1[256];
+			int num=0;
+			int n1=read(sockfd,buf1,255);
+    			if (n1<0) 
+         			cout<<"Error reading from socket"<<endl;
+         		else
+    			{
+    				for(i=0;i<n1;i++)
+    				{
+    					if(buf1[i]==' ')
+    					break;
+    					ip1+=buf1[i];
+    				}
+    				for(i++;i<n1;i++)
+    				{
+    					if(buf1[i]==' ')
+    					break;
+    					port1+=buf1[i];
+    				}
+			}	
+			cout<<"Received from tracker server ip="<<ip1<<" and port="<<port1<<endl;
+			string info_to_be_sent=ip1+" "+port1+" "+filename+" "+to_string(p.first);
 			char* p2=new char[info_to_be_sent.size()+1];
 			strcpy(p2, info_to_be_sent.c_str());	
 			//cout<<p2<<endl;
@@ -837,16 +869,19 @@ int main(int argc, char *argv[])
 				cout<<"Thread creation failed"<<endl;   
 			pthread_detach(client_peer);
 			
-			string buf1=string((char*)p2),chunknum="";
+			string buf2=string((char*)p2),chunknum="",chunk="";
  		   	for(i=0;i<n1;i++)
  		   	{
- 		   		if(buf1[i]=='|')
+ 		   		if(buf2[i]=='|')
  		   			break;
- 		   		chunknum+=buf1[i];
+ 		   		chunknum+=buf2[i];
  		   	}
  		   	long long int cnum=stoll(chunknum);
- 		   	string chunk=buf1.substr(i+1);
- 		   	cout<<chunknum<<" "<<chunk<<endl;
+ 		   	for(;i<n1;i++)
+ 		   	{
+ 		   		chunk+=buf2[i];
+ 		   	}
+ 		   	cout<<cnum<<" "<<chunk<<endl;
  		   }
  	}
  	else
