@@ -48,7 +48,6 @@ void* tracker_functions(void* info)
 		int n=read(newsockfd,buffer,255);
      		if (n < 0) 
      			cout<<"Cannot read from socket"<<endl;
-     		//cout<<"RECEIVED: "<<buffer<<endl;
      		string buf=string(buffer);
      		char ch=buf[0];
      		if(buf.size()>2)
@@ -640,6 +639,7 @@ void* tracker_functions(void* info)
 	     			break;
 	     			no_of_chunks+=buf[i];
 	     		}
+	     		cout<<"NO OF CHUNKS IS "<<no_of_chunks<<endl;
 	     		long long int num=stoll(no_of_chunks);
 	     		string buf;
 	     		string addr=client_ip+" "+client_port;
@@ -808,7 +808,7 @@ void* tracker_functions(void* info)
 		     						buf="File "+filename+" not present in gid "+gid;
 		     					}
 		     					else
-		     					{
+		     					{	
 		     						vector<vector<string>> v=uploaded_files[gid][filename];
 		     						for(int j=0;j<v.size();j++)
 		     						{
@@ -825,10 +825,14 @@ void* tracker_functions(void* info)
 		     	}
 		     	char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());
-	     		cout<<msg<<endl;  
+	     		//cout<<msg<<endl;  
  			int n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
+         		
+         		string uid=client_map[addr];
+         		for(long long int j=0;j<uploaded_files[gid][filename].size();j++)	
+         		uploaded_files[gid][filename][j].push_back(uid);
      		}
      		if(ch=='m')
      		{
@@ -843,7 +847,7 @@ void* tracker_functions(void* info)
 	     		addr=client_addr[uid];
 	     		char* msg=new char[addr.size()+1];
 	     		strcpy(msg, addr.c_str());
-	     		cout<<"msg is "<<msg<<endl;  
+	     		//cout<<"msg is "<<msg<<endl;  
  			int n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
