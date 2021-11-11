@@ -8,12 +8,14 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <fstream>
-#include<bits/stdc++.h>
-#include<time.h>
+#include <bits/stdc++.h>
+#include <dirent.h>
+#include <time.h>
 using namespace std;
 	
 long long int chunksize=512*1024;
 string self_uid;
+vector<vector<string>> downloaded_files;
 
 void* peer_as_client(void* param)
 {
@@ -582,11 +584,7 @@ int main(int argc, char *argv[])
  	}
  	else if(cmd=="upload_file")
  	{
- 		pthread_t server_peer;
-		char* param=new char[port.size()+1];
-		strcpy(param, port.c_str());
-		    
-		if(i==command.size())
+ 		if(i==command.size())
     		{
     			cout<<"Enter file path and group id"<<endl;
     			continue;
@@ -653,13 +651,7 @@ int main(int argc, char *argv[])
     			cout<<buf1[i];
     			cout<<endl;
     		}
-    		if(!server_running)
-		{
-			server_running=true;
-			if(pthread_create(&server_peer,NULL,&peer_as_server,(void*)param)!=0)
-				cout<<"Thread creation failed"<<endl;   
-			pthread_detach(server_peer);
-		}
+    		
  	}
  	else if(cmd=="download_file")
  	{
@@ -703,6 +695,17 @@ int main(int argc, char *argv[])
     			continue;
     		}
     		dest_path=command.substr(i+1);
+    		
+    		DIR *d;
+		struct dirent *dir;
+		d = opendir(dest_path.c_str());
+		if(d==NULL) 
+		{
+		    cout<<"No such path found"<<endl;
+		    continue;
+		}
+    		
+    		
     		dest_path=dest_path+"/"+filename;
     		
     		cout<<"Before opening, filepath="<<dest_path<<endl;
@@ -725,15 +728,10 @@ int main(int argc, char *argv[])
          		cout<<"Error reading from socket"<<endl;
          	else
     		{
-    			/*for(int i=0;i<n1;i++)
-    			{
-    				cout<<buf1[i]<<endl;
-    			}*/
     			string chunk="",uid="";
     			int c=0,u=0;
     			for(int i=0;i<n1;i++)
     			{
-    				//cout<<i<<" "<<buf1[i]<<" "<<temp.size()<<endl;
     				if(buf1[i]=='$')
     				{
     					c=1;
@@ -808,18 +806,22 @@ int main(int argc, char *argv[])
     				fileaddr+=buf5[i];
     			}
     		}
-    				
+    		downloaded_files.push_back({"D",gid,filename});
+    		unordered_map<string,int> chunks_fetch;
+    		srand(time(0));	
 		for(auto itr:vect)
 		{
 			if(itr.first==0)
 				continue;
 			pair<int,vector<string>> p=itr.second;
 			long long int num_users=itr.first;
-			srand(time(0));
 			long long int index=rand()%num_users;
 			string fetch_from_uid=p.second[index];
 			
-			cout<<"Chunk "<<itr.second.first<<" downloaded from user : "<<p.second[index];
+			chunks_fetch[fetch_from_uid].push_back(p.first);
+		}
+		
+			cout<<"Chunk "<<itr.second.first<<" downloaded from user : "<<p.second[index]<<endl;
 			
 			string msg="m<"+fetch_from_uid+">";
     			char* buf=new char[msg.size()+1];
@@ -858,12 +860,62 @@ int main(int argc, char *argv[])
 				cout<<"Thread creation failed"<<endl;   
 			pthread_join(client_peer,NULL);
 		   }
+		   for(auto itr:downloaded_files)
+		   {
+		   	vector<string> v={"D",gid,filename};
+		   	if(v==itr)
+		   	{
+		   		itr[0]="C";
+		   	}
+		   }
  	}
+ 	else if(cmd="logout")
+ 	{
+ 		string msg="p";
+    		char* buf=new char[msg.size()+1];
+    		strcpy(buf, msg.c_str());  
+		int n = write(sockfd,buf,strlen(buf));
+		if (n < 0) 
+			cout<<"Could not write to socket"<<endl;
+
+    		char buf1[256];
+    		int n1 = read(sockfd,buf1,255);
+    		if (n1 < 0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+         	{
+         		for(int i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}
+ 	}
+ 	else if(cmd=="show_downloads")
+ 	{
+ 		for(auto itr:downloaded_files)
+		{
+			cout<<"["<<itr[0]<<"] ["<<itr[1]<<"] "<<itr[2]<<endl;   	
+		}
+	}
+	else if(cmd=="stop_share")
+	{
+		
+	}
  	else
  	{
  		cout<<"Wrong command, enter again"<<endl;
  		continue;
  	}
+ 	pthread_t server_peer;
+	char* param=new char[port.size()+1];
+	strcpy(param, port.c_str());
+		
+ 	if(!server_running)
+	{
+		server_running=true;
+		if(pthread_create(&server_peer,NULL,&peer_as_server,(void*)param)!=0)
+			cout<<"Thread creation failed"<<endl;   
+		pthread_detach(server_peer);
+	}
     }	
     close(sockfd);
     return 0;

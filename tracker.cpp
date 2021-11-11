@@ -639,7 +639,7 @@ void* tracker_functions(void* info)
 	     			break;
 	     			no_of_chunks+=buf[i];
 	     		}
-	     		cout<<"NO OF CHUNKS IS "<<no_of_chunks<<endl;
+	     		//cout<<"NO OF CHUNKS IS "<<no_of_chunks<<endl;
 	     		long long int num=stoll(no_of_chunks);
 	     		string buf;
 	     		string addr=client_ip+" "+client_port;
@@ -854,7 +854,7 @@ void* tracker_functions(void* info)
      		}
      		if(ch=='n')
      		{
-     			cout<<buf<<endl;
+     			//cout<<buf<<endl;
      			string ip2="";
 	     		long long int i,j;
 	     		for(i=0;i<buf.size();i++)
@@ -897,6 +897,34 @@ void* tracker_functions(void* info)
 	     		char* fp=new char[fileaddr.size()+1];
 	     		strcpy(fp, fileaddr.c_str());
 	     		int n1 = write(newsockfd,fp,strlen(fp));
+    			if (n1 < 0) 
+         			cout<<"Could not write to socket"<<endl;
+     		}
+     		if(ch=='p')
+     		{
+     			string buf;
+	     		string addr=client_ip+" "+client_port;
+     			if(client_map.find(addr)==client_map.end())
+     			{
+     				buf="Please register first";
+     			}
+     			else
+     			{
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{
+	     				logged_in[uid]=false;
+	     				buf="You have successfully logged out";
+	     			}
+	     		}
+	     		
+	     		char* rep=new char[buf.size()+1];
+	     		strcpy(rep, buf.c_str());
+	     		int n1 = write(newsockfd,rep,strlen(rep));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
