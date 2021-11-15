@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h> 
+#include <openssl/sha.h>
 #define _BSD_SOURCE
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -10,6 +11,8 @@
 #include<fstream>
 #include <pthread.h>
 using namespace std;
+
+#define ll long long int
 
 unordered_map<string,vector<string>> client_list;
 unordered_map<string,bool> logged_in;
@@ -21,10 +24,11 @@ unordered_map<string,vector<string>> pending_clients;
 unordered_map<string,unordered_map<string,vector<vector<string>>>> uploaded_files;
 unordered_map<string,string> filedetails;
 unordered_map<string,string> client_addr;
+vector<pair<string,string>> users;
 
 vector<int> sckfd;
 vector<pthread_t> tid(20);
-int ind=0;
+ll ind=0;
 
 class clientInfo
 {
@@ -45,7 +49,7 @@ void* tracker_functions(void* info)
   
 	while(1)
 	{
-		int n=read(newsockfd,buffer,255);
+		ll n=read(newsockfd,buffer,255);
      		if (n < 0) 
      			cout<<"Cannot read from socket"<<endl;
      		string buf=string(buffer);
@@ -61,7 +65,7 @@ void* tracker_functions(void* info)
         	if(ch=='b')
         	{
         		string userid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -104,7 +108,7 @@ void* tracker_functions(void* info)
 	     		}
 	     		char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
  		}
@@ -114,7 +118,7 @@ void* tracker_functions(void* info)
      		{	
      			//cout<<"2"<<endl;
      			string userid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -160,6 +164,13 @@ void* tracker_functions(void* info)
 	     			}
 	     			else
 	     			{
+	     				for(auto itr:users)
+	     				{
+	     					for(ll i=0;i<uploaded_files[itr.first][itr.second].size();i++)
+	     					{
+	     						uploaded_files[itr.first][itr.second][i].push_back(uid);
+	     					}
+	     				}
 	     				vector<string> v=client_list[userid];
 	     				if(v[0]!=password)
 	     				{
@@ -174,7 +185,7 @@ void* tracker_functions(void* info)
 	     		}
      			char* msg=new char[buf1.size()+1];
 	     		strcpy(msg, buf1.c_str());  
-	     		int n1 = write(newsockfd,msg,strlen(msg));
+	     		ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -182,7 +193,7 @@ void* tracker_functions(void* info)
      		if(ch=='d')
      		{
      			string gid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -218,7 +229,7 @@ void* tracker_functions(void* info)
 	     		}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -226,7 +237,7 @@ void* tracker_functions(void* info)
      		if(ch=='e')
      		{
      			string gid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -255,8 +266,8 @@ void* tracker_functions(void* info)
 	     				else
 	     				{
 		     				vector<string> v=groups[gid];
-		     				int f=0;
-		     				for(int i=0;i<v.size();i++)
+		     				ll f=0;
+		     				for(ll i=0;i<v.size();i++)
 		     				{
 		     					if(v[i]==uid)
 		     					{
@@ -268,8 +279,8 @@ void* tracker_functions(void* info)
 		     				if(!f)
 		     				{
 		     					vector<string> v=pending[gid];
-		     					int f1=0;
-		     					for(int i=0;i<v.size();i++)
+		     					ll f1=0;
+		     					for(ll i=0;i<v.size();i++)
 		     					{
 		     						if(v[i]==uid)
 		     						{
@@ -292,7 +303,7 @@ void* tracker_functions(void* info)
 	     		}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -300,7 +311,7 @@ void* tracker_functions(void* info)
      		if(ch=='f')
      		{
      			string gid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -356,7 +367,7 @@ void* tracker_functions(void* info)
 	     		}
      			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -364,7 +375,7 @@ void* tracker_functions(void* info)
      		if(ch=='g')
      		{
      			string gid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -416,7 +427,7 @@ void* tracker_functions(void* info)
 	     		}
 	     		char* msg=new char[buf.size()+1];
 		     	strcpy(msg, buf.c_str());  
-	 		int n1 = write(newsockfd,msg,strlen(msg));
+	 		ll n1 = write(newsockfd,msg,strlen(msg));
 	    		if (n1 < 0) 
 		 		cout<<"Could not write to socket"<<endl;
      		}	
@@ -424,7 +435,7 @@ void* tracker_functions(void* info)
      		if(ch=='h')
      		{
      			string gid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -468,7 +479,7 @@ void* tracker_functions(void* info)
 						}
 						else
 						{
-							int f=0;
+							ll f=0;
 							vector<string>::iterator itr;
 							for(itr=pending[gid].begin();itr!=pending[gid].end();itr++)
 							{
@@ -494,7 +505,7 @@ void* tracker_functions(void* info)
 			}
 			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -538,7 +549,7 @@ void* tracker_functions(void* info)
 			 }
 			 char* msg=new char[buf.size()+1];
 			 strcpy(msg, buf.c_str());  
-		 	 int n1 = write(newsockfd,msg,strlen(msg));
+		 	 ll n1 = write(newsockfd,msg,strlen(msg));
 		    	 if (n1 < 0) 
 			 	cout<<"Could not write to socket"<<endl;
      		}
@@ -546,7 +557,7 @@ void* tracker_functions(void* info)
      		if(ch=='j')
      		{
      			string gid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -574,8 +585,8 @@ void* tracker_functions(void* info)
 	     				}
 	     				else
 	     				{
-	     					int f=0;
-	     					for(int j=0;j<groups[gid].size();j++)
+	     					ll f=0;
+	     					for(ll j=0;j<groups[gid].size();j++)
 	     					{
 	     						if(groups[gid][j]==uid)
 	     						{
@@ -608,7 +619,7 @@ void* tracker_functions(void* info)
 	     		}
 	     		char* msg=new char[buf1.size()+1];
 			strcpy(msg, buf1.c_str());
-			int n1 = write(newsockfd,msg,strlen(msg));
+			ll n1 = write(newsockfd,msg,strlen(msg));
 	    		if (n1 < 0) 
 		 		cout<<"Could not write to socket"<<endl;
      		}
@@ -616,7 +627,7 @@ void* tracker_functions(void* info)
      		if(ch=='k')
      		{
      			string filepath="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -639,8 +650,9 @@ void* tracker_functions(void* info)
 	     			break;
 	     			no_of_chunks+=buf[i];
 	     		}
+	     		
 	     		//cout<<"NO OF CHUNKS IS "<<no_of_chunks<<endl;
-	     		long long int num=stoll(no_of_chunks);
+	     		ll num=stoll(no_of_chunks);
 	     		string buf;
 	     		string addr=client_ip+" "+client_port;
      			if(client_map.find(addr)==client_map.end())
@@ -666,7 +678,7 @@ void* tracker_functions(void* info)
 		     			{
 		     				//cout<<3<<endl;
 		     				vector<string> temp=groups[gid];
-		     				int flag=0;
+		     				ll flag=0;
 		     				for(auto itr:temp)
 		     				{
 		     					if(itr==uid)
@@ -695,7 +707,7 @@ void* tracker_functions(void* info)
 							{
 								unordered_map<string,vector<vector<string>>> mp;
 								vector<vector<string>> v(num);
-								for(long long int j=0;j<num;j++)
+								for(ll j=0;j<num;j++)
 								{
 									v[j].push_back(uid);
 								}
@@ -709,7 +721,7 @@ void* tracker_functions(void* info)
 								if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
 								{
 									vector<vector<string>> v(num);
-									for(long long int j=0;j<num;j++)
+									for(ll j=0;j<num;j++)
 									{
 										v[j].push_back(uid);
 									}
@@ -719,10 +731,10 @@ void* tracker_functions(void* info)
 								else
 								{
 									//cout<<6<<endl;
-									int f=0;
-									for(long long int j=0;j<uploaded_files[gid][filename].size();j++)
+									ll f=0;
+									for(ll j=0;j<uploaded_files[gid][filename].size();j++)
 									{
-										for(long long int k=0;k<uploaded_files[gid][filename][j].size();k++)
+										for(ll k=0;k<uploaded_files[gid][filename][j].size();k++)
 										{
 											if(uploaded_files[gid][filename][j][k]==uid)
 											{
@@ -736,7 +748,7 @@ void* tracker_functions(void* info)
 									if(!f)
 									{
 										//cout<<7<<endl;
-										for(long long int j=0;j<uploaded_files[gid][filename].size();j++)
+										for(ll j=0;j<uploaded_files[gid][filename].size();j++)
 										{
 											uploaded_files[gid][filename][j].push_back(uid);
 										}
@@ -752,7 +764,7 @@ void* tracker_functions(void* info)
 			}
 			char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -760,7 +772,7 @@ void* tracker_functions(void* info)
      		if(ch=='l')
      		{
      			string gid="";
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -810,10 +822,10 @@ void* tracker_functions(void* info)
 		     					else
 		     					{	
 		     						vector<vector<string>> v=uploaded_files[gid][filename];
-		     						for(int j=0;j<v.size();j++)
+		     						for(ll j=0;j<v.size();j++)
 		     						{
 		     							buf+="$"+to_string(j);
-		     							for(int k=0;k<v[j].size();k++)
+		     							for(ll k=0;k<v[j].size();k++)
 		     							{
 		     								buf+="|"+v[j][k];
 		     							}
@@ -826,18 +838,18 @@ void* tracker_functions(void* info)
 		     	char* msg=new char[buf.size()+1];
 	     		strcpy(msg, buf.c_str());
 	     		//cout<<msg<<endl;  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
          		
          		string uid=client_map[addr];
-         		for(long long int j=0;j<uploaded_files[gid][filename].size();j++)	
+         		for(ll j=0;j<uploaded_files[gid][filename].size();j++)	
          		uploaded_files[gid][filename][j].push_back(uid);
      		}
      		if(ch=='m')
      		{
      			string uid="",addr;
-	     		int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -848,7 +860,7 @@ void* tracker_functions(void* info)
 	     		char* msg=new char[addr.size()+1];
 	     		strcpy(msg, addr.c_str());
 	     		//cout<<"msg is "<<msg<<endl;  
- 			int n1 = write(newsockfd,msg,strlen(msg));
+ 			ll n1 = write(newsockfd,msg,strlen(msg));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -856,7 +868,7 @@ void* tracker_functions(void* info)
      		{
      			//cout<<buf<<endl;
      			string ip2="";
-	     		long long int i,j;
+	     		ll i,j;
 	     		for(i=0;i<buf.size();i++)
 	     		{
 	     			if(buf[i]=='>')
@@ -885,7 +897,7 @@ void* tracker_functions(void* info)
      		}
      		if(ch=='o')
      		{
-     			long long int i,j;
+     			ll i,j;
      			string filename="";
 	     		for(i=0;i<buf.size();i++)
 	     		{
@@ -896,7 +908,7 @@ void* tracker_functions(void* info)
 	     		string fileaddr=filedetails[filename];
 	     		char* fp=new char[fileaddr.size()+1];
 	     		strcpy(fp, fileaddr.c_str());
-	     		int n1 = write(newsockfd,fp,strlen(fp));
+	     		ll n1 = write(newsockfd,fp,strlen(fp));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -918,13 +930,103 @@ void* tracker_functions(void* info)
 	     			else
 	     			{
 	     				logged_in[uid]=false;
+	     				for(auto itr:uploaded_files)
+	     				{
+	     					for(auto itr1:itr.second)
+	     					{
+	     						for(ll i=0;i<itr1.second.size();i++)
+	     						{
+	     							auto itr2=find(itr1.second[i].begin(),itr1.second[i].end(),uid);
+	     							if(itr2!=itr1.second[i].end())
+	     							{
+	     								itr1.second[i].erase(itr2);
+	     								users.push_back({itr.first,itr1.first});
+	     							}
+	     						}
+	     					}
+	     				}
 	     				buf="You have successfully logged out";
 	     			}
 	     		}
 	     		
 	     		char* rep=new char[buf.size()+1];
 	     		strcpy(rep, buf.c_str());
-	     		int n1 = write(newsockfd,rep,strlen(rep));
+	     		ll n1 = write(newsockfd,rep,strlen(rep));
+    			if (n1 < 0) 
+         			cout<<"Could not write to socket"<<endl;
+     		}
+     		if(ch=='q')
+     		{
+     			string gid="";
+	     		ll i,j;
+	     		for(i=0;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			gid+=buf[i];
+	     		}
+	     		i+=2;
+	     		string filename="";
+	     		for(;i<buf.size();i++)
+	     		{
+	     			if(buf[i]=='>')
+	     			break;
+	     			filename+=buf[i];
+	     		}
+	     		
+	     		string buf;
+	     		string addr=client_ip+" "+client_port;
+     			if(client_map.find(addr)==client_map.end())
+     			{
+     				buf="Please register first";
+     			}
+     			else
+     			{
+	     			string uid=client_map[addr];
+	     			if(logged_in[uid]!=true)
+	     			{
+	     				buf="Please log in first";
+	     			}
+	     			else
+	     			{
+	     				if(groups.find(gid)==groups.end())
+	     				{
+	     					buf="No such group present";
+	     				}
+		     			else
+		     			{
+		     				if(uploaded_files.find(gid)==uploaded_files.end())
+		     				{
+		     					buf="No files uploaded in gid "+gid;
+		     				}
+		     				else
+		     				{
+		     					if(uploaded_files[gid].find(filename)==uploaded_files[gid].end())
+		     					{
+		     						buf="File "+filename+" not present in gid "+gid;
+		     					}
+		     					else
+		     					{
+		     						ll i,j;
+		     						vector<vector<string>> v=uploaded_files[gid][filename];
+		     						for(i=0;i<uploaded_files[gid][filename].size();i++)
+		     						{
+		     							auto itr=find(uploaded_files[gid][filename][i].begin(),uploaded_files[gid][filename][i].end(),uid);
+		     							if(itr!=uploaded_files[gid][filename][i].end())
+		     							{
+		     								uploaded_files[gid][filename][i].erase(itr);	
+		     							}
+		     						}
+		     						buf="You have stopped sharing file "+filename+" in group "+gid;
+		     					}
+		     				}
+		     			}
+		     		}
+		     	}
+		     	
+		     	char* rep=new char[buf.size()+1];
+	     		strcpy(rep, buf.c_str());
+	     		ll n1 = write(newsockfd,rep,strlen(rep));
     			if (n1 < 0) 
          			cout<<"Could not write to socket"<<endl;
      		}
@@ -933,16 +1035,16 @@ void* tracker_functions(void* info)
 
 void* check_if_quit(void* param)
 {
-	vector<int>* sockfd=(vector<int>*)param;
+	vector<ll>* sockfd=(vector<ll>*)param;
 	while(1)
 	{
 		string cmd;
 		cin>>cmd;
 		if(cmd=="quit")
 		{
-			vector<int> v=*sockfd;
+			vector<ll> v=*sockfd;
 			//cout<<ind<<" "<<v.size()<<endl;
-			for(int i=0;i<v.size();i++)
+			for(ll i=0;i<v.size();i++)
 			{	
 				close(v[i]);
 			}
@@ -960,7 +1062,7 @@ int main(int argc, char *argv[])
      int sockfd, newsockfd, portno;
      socklen_t clilen;
      struct sockaddr_in serv_addr, cli_addr;
-     int n;
+     ll n;
      if (argc < 2) 
      {
      	cout<<"No port provided"<<endl;

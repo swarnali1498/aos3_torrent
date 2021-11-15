@@ -13,53 +13,50 @@
 #include <time.h>
 using namespace std;
 	
-long long int chunksize=512*1024;
+#define ll long long int
+
+ll chunksize=512*1024;
 string self_uid;
 vector<vector<string>> downloaded_files;
 
 void* peer_as_client(void* param)
 {
-  //  cout<<"client"<<endl;
+   // cout<<"client"<<endl;
     char* p = (char*)param;
     struct sockaddr_in serv_addr,cli_addr;
     string ip_port = string(p);
     string ip="",port="",filename="",fileaddr="",destpath="",chunk="";
-    long long int i,j;
+    ll i,j;
     for(i=0;i<ip_port.size();i++)
     {
     	if(ip_port[i]==' ')
     		break;
     	ip+=ip_port[i];
     }
-  //  cout<<ip<<endl;
     for(i++;i<ip_port.size();i++)
     {
     	if(ip_port[i]==' ')
     		break;
     	port+=ip_port[i];
     }
-  //  cout<<port<<endl;
     for(i++;i<ip_port.size();i++)
     {
     	if(ip_port[i]==' ')
     		break;
     	filename+=ip_port[i];
     }
-    //cout<<filename<<endl;
     for(i++;i<ip_port.size();i++)
     {
     	if(ip_port[i]==' ')
     		break;
     	fileaddr+=ip_port[i];
     }
-    //cout<<fileaddr<<endl;
     for(i++;i<ip_port.size();i++)
     {
     	if(ip_port[i]==' ')
     		break;
     	destpath+=ip_port[i];
     }
-    //cout<<destpath<<endl;
     string user="";
     for(i++;i<ip_port.size();i++)
     {
@@ -67,16 +64,14 @@ void* peer_as_client(void* param)
     		break;
     	user+=ip_port[i];
     }
-    //cout<<user<<endl;
     i++;
-    vector<long long int> chunk_nums;
+    vector<ll> chunk_nums;
     while(i<ip_port.size())
     {
     	if(ip_port[i]=='|')
     	{
-    		long long int ch1=stoll(chunk);
+    		ll ch1=stoll(chunk);
     		chunk_nums.push_back(ch1);
-    	//	cout<<chunk<<endl;
     		chunk="";
     	}
     	else if(ip_port[i]=='>')
@@ -85,10 +80,6 @@ void* peer_as_client(void* param)
     		chunk+=ip_port[i];
     	i++;
     }
-    
-   // cout<<"ip="<<ip<<" port="<<port<<" filename="<<filename<<" fileaddr="<<fileaddr<<" user="<<user<<endl;
-   /* for(i=0;i<chunk_nums.size();i++)
-    cout<<chunk_nums[i]<<endl;*/
     
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
@@ -113,10 +104,10 @@ void* peer_as_client(void* param)
     FILE* fp=fopen(fileaddr.c_str(),"rb");
     FILE* opfile=fopen(destpath.c_str(),"rb+");
     fseek(fp,0,SEEK_END);
-    long long int filesize=ftell(fp);
+    ll filesize=ftell(fp);
     fclose(fp);
     
-    int flag;
+    ll flag;
     for(auto itr:chunk_nums)
     {
     	if(itr==*chunk_nums.rbegin())
@@ -129,15 +120,15 @@ void* peer_as_client(void* param)
     	char* buf=new char[msg.size()+1];
     	strcpy(buf, msg.c_str());
     	
-   	int n = write(sockfd,buf,strlen(buf));
+   	ll n = write(sockfd,buf,strlen(buf));
     	if (n < 0) 
     		cout<<"Could not write to socket"<<endl;
     
     	
     	//cout<<"FILESIZE IS "<<filesize<<endl; 
-    	long long int start_pos=itr*chunksize;
+    	ll start_pos=itr*chunksize;
     	
-    	long long int csize=chunksize;
+    	ll csize=chunksize;
     	if(start_pos+chunksize>=filesize)
     	{
     		csize=filesize-start_pos;
@@ -145,13 +136,13 @@ void* peer_as_client(void* param)
     	
     	
     	char buf1[512*1024];
-    	long long int total=0;
+    	ll total=0;
     	fseek(opfile,start_pos, SEEK_SET);
    	//cout<<start_pos<<" "<<total<<" "<<csize<<endl;
     	while(total<csize)
     	{
     	//	cout<<total<<" "<<csize<<endl;
-    		long long int n1=read(sockfd,buf1,512*1024);
+    		ll n1=read(sockfd,buf1,512*1024);
    		if (n1<0) 
     			cout<<"Error reading from socket"<<endl;
  
@@ -187,17 +178,18 @@ void* peer_as_server(void* param)
      
      while(1)
      {
+     	 //cout<<"server"<<endl;
      	 psockfd = accept(peer_sockfd, (struct sockaddr *) &peer_cli_addr, &clilen);
       	 if (psockfd < 0) 
           	cout<<"Error on accept"<<endl;  
          while(1)
          {
 		 char buffer[1024*512];
-		 int n=read(psockfd,buffer,1024*512);
+		 ll n=read(psockfd,buffer,1024*512);
 	     	  if (n < 0) 
 	     	 	cout<<"Cannot read from socket"<<endl;
 	     	  	
-	     	 long long int i,j;
+	     	 ll i,j;
 	     	 string s=string(buffer);
 	     	 string filename="",fileaddr="",chunk="",flag;
 	     	 for(i=0;i<s.size();i++)
@@ -219,7 +211,7 @@ void* peer_as_server(void* param)
 	     	 	chunk+=s[i];
 	     	 }
 	     	 flag=s.substr(i+1);
-	     	 long long int chunknum=stoll(chunk);
+	     	 ll chunknum=stoll(chunk);
 	     	 //cout<<chunknum<<endl;
 	     	 
 	     	 char* filepath=new char[fileaddr.size()+1];
@@ -229,8 +221,8 @@ void* peer_as_server(void* param)
 	     	// cout<<filepath<<endl;
 	     	 FILE* ipfile=fopen(filepath,"rb");
 	     	 fseek(ipfile,0,SEEK_END);
-	     	 long long int filesize=ftell(ipfile),csize;
-	     	 long long int start_pos=chunknum*chunksize;
+	     	 ll filesize=ftell(ipfile),csize;
+	     	 ll start_pos=chunknum*chunksize;
 	     	 fseek(ipfile,start_pos,SEEK_SET);
 	     	 //cout<<"FILESIZE is "<<filesize<<endl;
 	     	 if (start_pos+chunksize >= filesize)
@@ -245,7 +237,7 @@ void* peer_as_server(void* param)
 	     	 fread(readbuf,1,csize,ipfile);
 	     	// cout<<"BUFFER SIZE "<<strlen(readbuf)<<endl;
 	     
-	     	 int n1=write(psockfd,readbuf,csize);
+	     	 ll n1=write(psockfd,readbuf,csize);
 	     	 if(n1<0)
 	     	 	cout<<"Cannot write to socket"<<endl;
 	     	 if(flag=="1")
@@ -258,7 +250,7 @@ int main(int argc, char *argv[])
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
-    int input,i,j;
+    ll input,i,j;
     
     char buffer[256];
     if (argc < 3) 
@@ -337,7 +329,7 @@ int main(int argc, char *argv[])
     		string msg="a";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-    		int n = write(sockfd,buf,strlen(buf));
+    		ll n = write(sockfd,buf,strlen(buf));
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
     		break;
@@ -370,12 +362,12 @@ int main(int argc, char *argv[])
    	 	string msg="b<"+userid+"><"+password+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-    		int n = write(sockfd,buf,strlen(buf));
+    		ll n = write(sockfd,buf,strlen(buf));
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
 		
 		char buf1[256];
-		int n1=read(sockfd,buf1,255);
+		ll n1=read(sockfd,buf1,255);
     		if (n1<0) 
          		cout<<"Error reading from socket"<<endl;
          	else
@@ -385,11 +377,11 @@ int main(int argc, char *argv[])
     				string msg3="n<"+ip+"><"+port+"><"+userid+">";
    			 	char* buf3=new char[msg3.size()+1];
 			    	strcpy(buf3, msg3.c_str());  
-			    	int n = write(sockfd,buf3,strlen(buf3));
+			    	ll n = write(sockfd,buf3,strlen(buf3));
 			    	if (n < 0) 
 			    		cout<<"Could not write to socket"<<endl; 
 			}
-    			for(int i=1;i<n1;i++)
+    			for(ll i=1;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -421,17 +413,17 @@ int main(int argc, char *argv[])
        	string msg="c<"+userid+"><"+password+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-		int n = write(sockfd,buf,strlen(buf));
+		ll n = write(sockfd,buf,strlen(buf));
 		if (n < 0) 
 			cout<<"Could not write to socket"<<endl;
 
     		char buf1[256];
-    		int n1 = read(sockfd,buf1,255);
+    		ll n1 = read(sockfd,buf1,255);
     		if (n1 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
          	{
-         		for(int i=0;i<n1;i++)
+         		for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -448,17 +440,17 @@ int main(int argc, char *argv[])
     		string msg="d<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-		int n = write(sockfd,buf,strlen(buf));
+		ll n = write(sockfd,buf,strlen(buf));
 		if (n < 0) 
 			cout<<"Could not write to socket"<<endl;
 
     		char buf1[256];
-    		int n1 = read(sockfd,buf1,255);
+    		ll n1 = read(sockfd,buf1,255);
     		if (n1 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
          	{
-         		for(int i=0;i<n1;i++)
+         		for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}		
@@ -475,17 +467,17 @@ int main(int argc, char *argv[])
     		string msg="e<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-		int n = write(sockfd,buf,strlen(buf));
+		ll n = write(sockfd,buf,strlen(buf));
 		if (n < 0) 
 			cout<<"Could not write to socket"<<endl;
 
     		char buf1[256];
-    		int n1 = read(sockfd,buf1,255);
+    		ll n1 = read(sockfd,buf1,255);
     		if (n1 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
          	{
-         		for(int i=0;i<n1;i++)
+         		for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}		
@@ -502,17 +494,17 @@ int main(int argc, char *argv[])
     		string msg="f<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-		int n = write(sockfd,buf,strlen(buf));
+		ll n = write(sockfd,buf,strlen(buf));
 		if (n < 0) 
 			cout<<"Could not write to socket"<<endl;
 
     		char buf1[256];
-    		int n1 = read(sockfd,buf1,255);
+    		ll n1 = read(sockfd,buf1,255);
     		if (n1 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
          	{
-         		for(int i=0;i<n1;i++)
+         		for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}		
@@ -529,17 +521,17 @@ int main(int argc, char *argv[])
     		string msg="g<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-		int n = write(sockfd,buf,strlen(buf));
+		ll n = write(sockfd,buf,strlen(buf));
 		if (n < 0) 
 			cout<<"Could not write to socket"<<endl;
 
     		char buf1[256];
-    		int n1 = read(sockfd,buf1,255);
+    		ll n1 = read(sockfd,buf1,255);
     		if (n1 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
          	{
-         		for(int i=0;i<n1;i++)
+         		for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -571,17 +563,17 @@ int main(int argc, char *argv[])
    	 	string msg="h<"+gid+"><"+uid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-    		int n = write(sockfd,buf,strlen(buf));
+    		ll n = write(sockfd,buf,strlen(buf));
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
 		
 		char buf1[256];
-		int n1=read(sockfd,buf1,255);
+		ll n1=read(sockfd,buf1,255);
     		if (n1<0) 
          		cout<<"Error reading from socket"<<endl;
          	else
     		{
-    			for(int i=0;i<n1;i++)
+    			for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -591,17 +583,17 @@ int main(int argc, char *argv[])
  		string msg="i";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-    		int n = write(sockfd,buf,strlen(buf));
+    		ll n = write(sockfd,buf,strlen(buf));
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
 		
 		char buf1[256];
-		int n1=read(sockfd,buf1,255);
+		ll n1=read(sockfd,buf1,255);
     		if (n1<0) 
          		cout<<"Error reading from socket"<<endl;
          	else
     		{
-    			for(int i=0;i<n1;i++)
+    			for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -618,17 +610,17 @@ int main(int argc, char *argv[])
     		string msg="j<"+gid+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-		int n = write(sockfd,buf,strlen(buf));
+		ll n = write(sockfd,buf,strlen(buf));
 		if (n < 0) 
 			cout<<"Could not write to socket"<<endl;
 
     		char buf1[256];
-    		int n1 = read(sockfd,buf1,255);
+    		ll n1 = read(sockfd,buf1,255);
     		if (n1 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
          	{
-         		for(int i=0;i<n1;i++)
+         		for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -677,10 +669,10 @@ int main(int argc, char *argv[])
 	     	
 	     	FILE* ipfile=fopen(filepath.c_str(),"rb");
 	     	fseek(ipfile,0,SEEK_END);
-	     	long long int filesize=ftell(ipfile),csize;
+	     	ll filesize=ftell(ipfile),csize;
 	     	     	
 		double numc=((double)filesize)/(512*1024);
-		long long int c=(long long int)numc;
+		ll c=(ll)numc;
 		if(c!=numc)
 		c++;
 		//cout<<"NUMBER OF CHUNKS IS "<<c<<endl;
@@ -688,17 +680,17 @@ int main(int argc, char *argv[])
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
     		//cout<<buf<<endl;
-    		int n = write(sockfd,buf,strlen(buf));
+    		ll n = write(sockfd,buf,strlen(buf));
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
 		
 		char buf1[256];
-		int n1=read(sockfd,buf1,255);
+		ll n1=read(sockfd,buf1,255);
     		if (n1<0) 
          		cout<<"Error reading from socket"<<endl;
          	else
     		{
-    			for(int i=0;i<n1;i++)
+    			for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -759,29 +751,29 @@ int main(int argc, char *argv[])
     		
     		dest_path=dest_path+"/"+filename;
     		
-    		cout<<"Before opening, filepath="<<dest_path<<endl;
+    		//cout<<"Before opening, filepath="<<dest_path<<endl;
     		FILE* fp=fopen(dest_path.c_str(),"a+");
     		fclose(fp);
     		
 		string msg="l<"+gid+"><"+filename+">";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-    		int n = write(sockfd,buf,strlen(buf));
+    		ll n = write(sockfd,buf,strlen(buf));
     		if (n < 0) 
          		cout<<"Could not write to socket"<<endl;
 		
 		vector<vector<string>> v;
 		vector<string> temp;
 		char buf1[1024*512];
-		int num=0;
-		int n1=read(sockfd,buf1,1024*512);
+		ll num=0;
+		ll n1=read(sockfd,buf1,1024*512);
     		if (n1<0) 
          		cout<<"Error reading from socket"<<endl;
          	else
     		{
     			string chunk="",uid="";
-    			int c=0,u=0;
-    			for(int i=0;i<n1;i++)
+    			ll c=0,u=0;
+    			for(ll i=0;i<n1;i++)
     			{
     				if(buf1[i]=='$')
     				{
@@ -818,9 +810,9 @@ int main(int argc, char *argv[])
     			if(temp.size())
     			v.push_back(temp);
     		}
-		long long int i,j;
+		ll i,j;
 		
-		------------------------------------------------
+		//------------------------------------------------
 		
 		/*for(i=0;i<v.size();i++)
 		{
@@ -832,12 +824,12 @@ int main(int argc, char *argv[])
 			cout<<endl;
 		}*/
 		
-		------------------------------------------------
+		//------------------------------------------------
 		
-		vector<pair<long long int,pair<long long int,vector<string>>>> vect;
+		vector<pair<ll,pair<ll,vector<string>>>> vect;
 		for(i=0;i<v.size();i++)
 		{
-			long long int len_users=v[i].size();
+			ll len_users=v[i].size();
 			vect.push_back({len_users,{i,v[i]}});
 		}
 		sort(vect.begin(),vect.end());
@@ -845,13 +837,13 @@ int main(int argc, char *argv[])
 		string msg4="o<"+filename+">";
     		char* buf4=new char[msg4.size()+1];
     		strcpy(buf4, msg4.c_str());  
-    		int n4 = write(sockfd,buf4,strlen(buf4));
+    		ll n4 = write(sockfd,buf4,strlen(buf4));
     		if (n4 < 0) 
          		cout<<"Could not write to socket"<<endl;
 		
 		string fileaddr="";
     		char buf5[1024*512];
-		int n5=read(sockfd,buf5,1024*512);
+		ll n5=read(sockfd,buf5,1024*512);
     		if (n5 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
@@ -862,15 +854,15 @@ int main(int argc, char *argv[])
     			}
     		}
     		downloaded_files.push_back({"D",gid,filename});
-    		unordered_map<string,vector<long long int>> chunks_fetch;
+    		unordered_map<string,vector<ll>> chunks_fetch;
     		srand(time(0));	
 		for(auto itr:vect)
 		{
 			if(itr.first==0)
 				continue;
-			pair<int,vector<string>> p=itr.second;
-			long long int num_users=itr.first;
-			long long int index=rand()%num_users;
+			pair<ll,vector<string>> p=itr.second;
+			ll num_users=itr.first;
+			ll index=rand()%num_users;
 			string fetch_from_uid=p.second[index];
 			
 			chunks_fetch[fetch_from_uid].push_back(p.first);
@@ -878,7 +870,7 @@ int main(int argc, char *argv[])
 		/*for(auto itr:chunks_fetch)
 		{
 			cout<<itr.first<<": ";
-			vector<long long int> v=itr.second;
+			vector<ll> v=itr.second;
 			for(auto itr1:v)
 			{
 				cout<<itr1<<" ";
@@ -888,20 +880,20 @@ int main(int argc, char *argv[])
 		for(auto itr:chunks_fetch)
 		{
 			string user=itr.first;
-			vector<long long int> chunk_nums=itr.second;
+			vector<ll> chunk_nums=itr.second;
 		//	cout<<"Chunk "<<itr.second.first<<" downloaded from user : "<<p.second[index]<<endl;
 			
 			string msg="m<"+user+">";
     			char* buf=new char[msg.size()+1];
     			strcpy(buf, msg.c_str());  
-    			int n = write(sockfd,buf,strlen(buf));
+    			ll n = write(sockfd,buf,strlen(buf));
     			if (n < 0) 
          			cout<<"Could not write to socket"<<endl;
          			
 			string ip1="",port1="";
     			char buf1[1024*512];
-			int num=0;
-			long long int n1=read(sockfd,buf1,1024*512);
+			ll num=0;
+			ll n1=read(sockfd,buf1,1024*512);
     			if (n1<0) 
          			cout<<"Error reading from socket"<<endl;
          		else
@@ -943,23 +935,24 @@ int main(int argc, char *argv[])
 		   		itr[0]="C";
 		   	}
 		   }
+		   cout<<"Successfully downloaded "<<filename<<endl;
  	}
  	else if(cmd=="logout")
  	{
  		string msg="p";
     		char* buf=new char[msg.size()+1];
     		strcpy(buf, msg.c_str());  
-		int n = write(sockfd,buf,strlen(buf));
+		ll n = write(sockfd,buf,strlen(buf));
 		if (n < 0) 
 			cout<<"Could not write to socket"<<endl;
 
     		char buf1[256];
-    		int n1 = read(sockfd,buf1,255);
+    		ll n1 = read(sockfd,buf1,255);
     		if (n1 < 0) 
          		cout<<"Error reading from socket"<<endl;
          	else
          	{
-         		for(int i=0;i<n1;i++)
+         		for(ll i=0;i<n1;i++)
     			cout<<buf1[i];
     			cout<<endl;
     		}
@@ -973,7 +966,45 @@ int main(int argc, char *argv[])
 	}
 	else if(cmd=="stop_share")
 	{
+		if(i==command.size())
+    		{
+    			cout<<"Enter group id and filename"<<endl;
+    			continue;
+    		}
+    		command=command.substr(i+1);
+    		string gid="",filename;
+    		for(i=0;i<command.size();i++)
+    		{
+    			if(command[i]==' ')
+    			{
+    				break;
+    			}
+    			gid+=command[i];
+    		}	
+    		if(i==command.size())
+    		{
+    			cout<<"Enter filename"<<endl;
+    			continue;
+    		}
+    		filename=command.substr(i+1);
+    		
+    		string send_str="q<"+gid+"><"+filename+">";
+    		char* send=new char[send_str.size()+1];
+    		strcpy(send, send_str.c_str());
+    		ll n = write(sockfd,send,strlen(send));
+		if (n < 0) 
+			cout<<"Could not write to socket"<<endl;
 		
+		char buf1[256];
+    		ll n1 = read(sockfd,buf1,255);
+    		if (n1 < 0) 
+         		cout<<"Error reading from socket"<<endl;
+         	else
+         	{
+         		for(ll i=0;i<n1;i++)
+    			cout<<buf1[i];
+    			cout<<endl;
+    		}
 	}
  	else
  	{
